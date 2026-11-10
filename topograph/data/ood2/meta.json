@@ -1,0 +1,228 @@
+{
+ "fpool_1": {
+  "category": "functional_pool_reshape",
+  "input_shape": [
+   1,
+   3,
+   16,
+   16
+  ],
+  "class_name": "FuncPoolNet"
+ },
+ "fpool_2": {
+  "category": "functional_pool_reshape",
+  "input_shape": [
+   1,
+   4,
+   16,
+   16
+  ],
+  "class_name": "ReshapeHead"
+ },
+ "fpool_3": {
+  "category": "functional_pool_reshape",
+  "input_shape": [
+   1,
+   2,
+   16,
+   16
+  ],
+  "class_name": "PermuteNet"
+ },
+ "chunk_1": {
+  "category": "chunk_gating",
+  "input_shape": [
+   1,
+   8,
+   16,
+   16
+  ],
+  "class_name": "GLUConv"
+ },
+ "chunk_2": {
+  "category": "chunk_gating",
+  "input_shape": [
+   1,
+   10
+  ],
+  "class_name": "GatedMLP"
+ },
+ "chunk_3": {
+  "category": "chunk_gating",
+  "input_shape": [
+   1,
+   6,
+   16,
+   16
+  ],
+  "class_name": "SplitMerge"
+ },
+ "attn_1": {
+  "category": "matmul_attention",
+  "input_shape": [
+   1,
+   8
+  ],
+  "class_name": "TinyAttention"
+ },
+ "attn_2": {
+  "category": "matmul_attention",
+  "input_shape": [
+   1,
+   12
+  ],
+  "class_name": "ScoreNet"
+ },
+ "attn_3": {
+  "category": "matmul_attention",
+  "input_shape": [
+   1,
+   4,
+   16,
+   16
+  ],
+  "class_name": "SpatialAttention"
+ },
+ "deconv_1": {
+  "category": "transposed_conv",
+  "input_shape": [
+   1,
+   3,
+   16,
+   16
+  ],
+  "class_name": "DeconvAE"
+ },
+ "deconv_2": {
+  "category": "transposed_conv",
+  "input_shape": [
+   1,
+   4,
+   16,
+   16
+  ],
+  "class_name": "DeconvSkip"
+ },
+ "deconv_3": {
+  "category": "transposed_conv",
+  "input_shape": [
+   1,
+   1,
+   16,
+   16
+  ],
+  "class_name": "TwoStageDecoder"
+ },
+ "norm_1": {
+  "category": "groupnorm_prelu",
+  "input_shape": [
+   1,
+   8,
+   16,
+   16
+  ],
+  "class_name": "GNBlock"
+ },
+ "norm_2": {
+  "category": "groupnorm_prelu",
+  "input_shape": [
+   1,
+   6,
+   16,
+   16
+  ],
+  "class_name": "HardNet"
+ },
+ "norm_3": {
+  "category": "groupnorm_prelu",
+  "input_shape": [
+   1,
+   16
+  ],
+  "class_name": "ELUMLP"
+ },
+ "stack_1": {
+  "category": "stack_reduce",
+  "input_shape": [
+   1,
+   4,
+   16,
+   16
+  ],
+  "class_name": "StackSum"
+ },
+ "stack_2": {
+  "category": "stack_reduce",
+  "input_shape": [
+   1,
+   8
+  ],
+  "class_name": "EnsembleMLP"
+ },
+ "stack_3": {
+  "category": "stack_reduce",
+  "input_shape": [
+   1,
+   3,
+   16,
+   16
+  ],
+  "class_name": "AddNet"
+ },
+ "scalar_1": {
+  "category": "scalar_arith",
+  "input_shape": [
+   1,
+   6,
+   16,
+   16
+  ],
+  "class_name": "ScaledResidual"
+ },
+ "scalar_2": {
+  "category": "scalar_arith",
+  "input_shape": [
+   1,
+   5
+  ],
+  "class_name": "AffineMLP"
+ },
+ "scalar_3": {
+  "category": "scalar_arith",
+  "input_shape": [
+   1,
+   4,
+   16,
+   16
+  ],
+  "class_name": "Normalize"
+ },
+ "mixed_1": {
+  "category": "mixed_functional",
+  "input_shape": [
+   1,
+   3,
+   16,
+   16
+  ],
+  "class_name": "MixedNet"
+ },
+ "mixed_2": {
+  "category": "mixed_functional",
+  "input_shape": [
+   1,
+   12
+  ],
+  "class_name": "DropMLP"
+ },
+ "mixed_3": {
+  "category": "mixed_functional",
+  "input_shape": [
+   1,
+   2,
+   16,
+   16
+  ],
+  "class_name": "PadCropNet"
+ }
+}

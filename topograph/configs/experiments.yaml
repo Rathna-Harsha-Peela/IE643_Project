@@ -1,0 +1,166 @@
+# Every inference run (spec §15). ${MODELS} is expanded from the environment.
+# prompt_mode: zero_shot | few_shot ; decoding: greedy unless sampling is given.
+# adapter: optional LoRA adapter dir (served with vLLM LoRA if no merged model is used).
+- name: base9b_zs_c
+  model_dir: ${MODELS}/Qwen3.5-9B
+  prompt_mode: zero_shot
+  constrained: true
+  eval_sets: [test, novel_topo, ood]
+- name: base9b_fs_c
+  model_dir: ${MODELS}/Qwen3.5-9B
+  prompt_mode: few_shot
+  constrained: true
+  eval_sets: [test, test_anon, novel_topo, ood]
+- name: base2b_fs_c
+  model_dir: ${MODELS}/Qwen3.5-2B
+  prompt_mode: few_shot
+  constrained: true
+  eval_sets: [test, novel_topo, ood]
+- name: base9b_fs_u
+  model_dir: ${MODELS}/Qwen3.5-9B
+  prompt_mode: few_shot
+  constrained: false
+  eval_sets: [test]
+- name: ft2b_c
+  model_dir: ${MODELS}/qwen35-2b-topograph-merged
+  prompt_mode: zero_shot
+  constrained: true
+  eval_sets: [test, test_anon, novel_topo, ood]
+- name: ft9b_c
+  model_dir: ${MODELS}/qwen35-9b-topograph-merged
+  prompt_mode: zero_shot
+  constrained: true
+  eval_sets: [test, test_anon, novel_topo, ood]
+- name: ft9b_u
+  model_dir: ${MODELS}/qwen35-9b-topograph-merged
+  prompt_mode: zero_shot
+  constrained: false
+  eval_sets: [test, novel_topo, ood]
+# ---- P1 ----
+- name: ft9b_c_retry
+  model_dir: ${MODELS}/qwen35-9b-topograph-merged
+  prompt_mode: zero_shot
+  constrained: true
+  retry_rounds: 2
+  eval_sets: [test, novel_topo, ood]
+- name: base9b_fs_c_retry
+  model_dir: ${MODELS}/Qwen3.5-9B
+  prompt_mode: few_shot
+  constrained: true
+  retry_rounds: 2
+  eval_sets: [test_mini, ood]
+- name: base9b_think
+  model_dir: ${MODELS}/Qwen3.5-9B
+  prompt_mode: zero_shot
+  constrained: false
+  thinking: true
+  max_tokens: 8192
+  max_model_len: 12288
+  sampling: {temperature: 0.6, top_p: 0.95, top_k: 20, presence_penalty: 0.0}
+  eval_sets: [test_mini, ood]
+- name: base9b_think32k        # E16b: thinking with room to finish (8,192 tokens: 97% unfinished)
+  model_dir: ${MODELS}/Qwen3.5-9B
+  prompt_mode: zero_shot
+  constrained: false
+  thinking: true
+  max_tokens: 30000
+  max_model_len: 34816
+  sampling: {temperature: 0.6, top_p: 0.95, top_k: 20, presence_penalty: 0.0}
+  eval_sets: [test_mini, ood]
+- name: base9b_think32k_c      # E16c: think freely, then JSON constrained to the schema
+  model_dir: ${MODELS}/Qwen3.5-9B
+  prompt_mode: zero_shot
+  constrained: true
+  reasoning_parser: qwen3
+  thinking: true
+  max_tokens: 30000
+  max_model_len: 34816
+  sampling: {temperature: 0.6, top_p: 0.95, top_k: 20, presence_penalty: 0.0}
+  eval_sets: [test_mini, ood]
+- name: coder7b_fs_c
+  model_dir: ${MODELS}/Qwen2.5-Coder-7B-Instruct
+  prompt_mode: few_shot
+  constrained: true
+  eval_sets: [test, novel_topo, ood]
+- name: ceil_fs_c
+  model_dir: ${MODELS}/CEILING
+  max_num_seqs: 64
+  gpu_memory_utilization: 0.92
+  prompt_mode: few_shot
+  constrained: true
+  eval_sets: [test, novel_topo, ood]
+- name: ceil_zs_c
+  model_dir: ${MODELS}/CEILING
+  max_num_seqs: 64
+  gpu_memory_utilization: 0.92
+  prompt_mode: zero_shot
+  constrained: true
+  eval_sets: [test_mini, ood]
+# ---- P2 ----
+- name: ft9b_sc5
+  model_dir: ${MODELS}/qwen35-9b-topograph-merged
+  prompt_mode: zero_shot
+  constrained: true
+  self_consistency: 5
+  sampling: {temperature: 0.7}
+  eval_sets: [test_mini, ood]
+# ---- smoke ----
+- name: smoke08b_zs
+  model_dir: ${MODELS}/Qwen3.5-0.8B
+  prompt_mode: zero_shot
+  constrained: true
+  eval_sets: [test_mini]
+# ---- night experiment: fine-tuned on official train_ft + synthetic new-topology modules ----
+- name: ft9b_aug_c
+  model_dir: ${MODELS}/qwen35-9b-topograph-aug-merged
+  prompt_mode: zero_shot
+  constrained: true
+  eval_sets: [test, test_anon, novel_topo, ood, ood2]
+- name: ft2b_aug_c
+  model_dir: ${MODELS}/qwen35-2b-topograph-aug-merged
+  prompt_mode: zero_shot
+  constrained: true
+  eval_sets: [test, test_anon, novel_topo, ood, ood2]
+# ---- night: inference-time combinations ----
+- name: ft9b_sc5_retry          # self-consistency (5) then verify-and-retry (2 rounds)
+  model_dir: ${MODELS}/qwen35-9b-topograph-merged
+  prompt_mode: zero_shot
+  constrained: true
+  self_consistency: 5
+  retry_rounds: 2
+  sampling: {temperature: 0.7}
+  eval_sets: [test_mini, novel_topo, ood]
+- name: ft2b_c_retry
+  model_dir: ${MODELS}/qwen35-2b-topograph-merged
+  prompt_mode: zero_shot
+  constrained: true
+  retry_rounds: 2
+  eval_sets: [test, novel_topo, ood]
+- name: ceil_zs_c_retry          # ceiling + verify-and-retry
+  model_dir: ${MODELS}/CEILING
+  max_num_seqs: 64
+  gpu_memory_utilization: 0.92
+  prompt_mode: zero_shot
+  constrained: true
+  retry_rounds: 2
+  eval_sets: [test_mini, novel_topo, ood]
+- name: ceil_fs_c_retry
+  model_dir: ${MODELS}/CEILING
+  max_num_seqs: 64
+  gpu_memory_utilization: 0.92
+  prompt_mode: few_shot
+  constrained: true
+  retry_rounds: 2
+  eval_sets: [test_mini, ood, ood2]
+- name: ft9b_aug_c_retry
+  model_dir: ${MODELS}/qwen35-9b-topograph-aug-merged
+  prompt_mode: zero_shot
+  constrained: true
+  retry_rounds: 2
+  eval_sets: [test, novel_topo, ood, ood2]
+- name: ft2b_aug_c_retry
+  model_dir: ${MODELS}/qwen35-2b-topograph-aug-merged
+  prompt_mode: zero_shot
+  constrained: true
+  retry_rounds: 2
+  eval_sets: [ood, ood2]

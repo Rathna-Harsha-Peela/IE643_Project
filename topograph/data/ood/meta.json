@@ -1,0 +1,416 @@
+{
+ "mlp_ln_1": {
+  "category": "mlp_norm",
+  "input_shape": [
+   1,
+   12
+  ],
+  "class_name": "MLPNorm"
+ },
+ "mlp_ln_2": {
+  "category": "mlp_norm",
+  "input_shape": [
+   1,
+   20
+  ],
+  "class_name": "TabularNet"
+ },
+ "mlp_ln_3": {
+  "category": "mlp_norm",
+  "input_shape": [
+   1,
+   8
+  ],
+  "class_name": "ResidualMLP"
+ },
+ "mlp_ln_4": {
+  "category": "mlp_norm",
+  "input_shape": [
+   1,
+   6
+  ],
+  "class_name": "WideDeep"
+ },
+ "vgg_1": {
+  "category": "vgg",
+  "input_shape": [
+   1,
+   3,
+   16,
+   16
+  ],
+  "class_name": "TinyVGG"
+ },
+ "vgg_2": {
+  "category": "vgg",
+  "input_shape": [
+   1,
+   1,
+   16,
+   16
+  ],
+  "class_name": "GrayClassifier"
+ },
+ "vgg_3": {
+  "category": "vgg",
+  "input_shape": [
+   1,
+   4,
+   16,
+   16
+  ],
+  "class_name": "VGGBN"
+ },
+ "vgg_4": {
+  "category": "vgg",
+  "input_shape": [
+   1,
+   3,
+   16,
+   16
+  ],
+  "class_name": "StridedNet"
+ },
+ "resnet_nested_1": {
+  "category": "nested_basicblock",
+  "input_shape": [
+   1,
+   3,
+   16,
+   16
+  ],
+  "class_name": "MiniResNet"
+ },
+ "resnet_nested_2": {
+  "category": "nested_basicblock",
+  "input_shape": [
+   1,
+   8,
+   16,
+   16
+  ],
+  "class_name": "TwoUnitNet"
+ },
+ "resnet_nested_3": {
+  "category": "nested_basicblock",
+  "input_shape": [
+   1,
+   3,
+   16,
+   16
+  ],
+  "class_name": "ResNetish"
+ },
+ "resnet_nested_4": {
+  "category": "nested_basicblock",
+  "input_shape": [
+   1,
+   16,
+   16,
+   16
+  ],
+  "class_name": "PreActNet"
+ },
+ "bottleneck_1": {
+  "category": "bottleneck",
+  "input_shape": [
+   1,
+   16,
+   16,
+   16
+  ],
+  "class_name": "Bottleneck"
+ },
+ "bottleneck_2": {
+  "category": "bottleneck",
+  "input_shape": [
+   1,
+   24,
+   16,
+   16
+  ],
+  "class_name": "DownBottleneck"
+ },
+ "bottleneck_3": {
+  "category": "bottleneck",
+  "input_shape": [
+   1,
+   8,
+   16,
+   16
+  ],
+  "class_name": "StackedBottleneck"
+ },
+ "bottleneck_4": {
+  "category": "bottleneck",
+  "input_shape": [
+   1,
+   32,
+   16,
+   16
+  ],
+  "class_name": "GatedBottleneck"
+ },
+ "inception_1": {
+  "category": "inception",
+  "input_shape": [
+   1,
+   16,
+   16,
+   16
+  ],
+  "class_name": "InceptionBlock"
+ },
+ "inception_2": {
+  "category": "inception",
+  "input_shape": [
+   1,
+   8,
+   16,
+   16
+  ],
+  "class_name": "ThreeWay"
+ },
+ "inception_3": {
+  "category": "inception",
+  "input_shape": [
+   1,
+   3,
+   16,
+   16
+  ],
+  "class_name": "StemInception"
+ },
+ "inception_4": {
+  "category": "inception",
+  "input_shape": [
+   1,
+   24,
+   16,
+   16
+  ],
+  "class_name": "InceptionRes"
+ },
+ "unet_1": {
+  "category": "unet",
+  "input_shape": [
+   1,
+   3,
+   16,
+   16
+  ],
+  "class_name": "UNetLite"
+ },
+ "unet_2": {
+  "category": "unet",
+  "input_shape": [
+   1,
+   1,
+   16,
+   16
+  ],
+  "class_name": "SegNetSmall"
+ },
+ "unet_3": {
+  "category": "unet",
+  "input_shape": [
+   1,
+   4,
+   16,
+   16
+  ],
+  "class_name": "TwoLevelUNet"
+ },
+ "unet_4": {
+  "category": "unet",
+  "input_shape": [
+   1,
+   2,
+   16,
+   16
+  ],
+  "class_name": "AddSkipAutoencoder"
+ },
+ "dense_1": {
+  "category": "densenet",
+  "input_shape": [
+   1,
+   8,
+   16,
+   16
+  ],
+  "class_name": "DenseBlock"
+ },
+ "dense_2": {
+  "category": "densenet",
+  "input_shape": [
+   1,
+   6,
+   16,
+   16
+  ],
+  "class_name": "DenseNetTiny"
+ },
+ "dense_3": {
+  "category": "densenet",
+  "input_shape": [
+   1,
+   4,
+   16,
+   16
+  ],
+  "class_name": "DenseBN"
+ },
+ "dense_4": {
+  "category": "densenet",
+  "input_shape": [
+   1,
+   10,
+   16,
+   16
+  ],
+  "class_name": "FourLayerDense"
+ },
+ "se_1": {
+  "category": "squeeze_excite",
+  "input_shape": [
+   1,
+   16,
+   16,
+   16
+  ],
+  "class_name": "SEBlock"
+ },
+ "se_2": {
+  "category": "squeeze_excite",
+  "input_shape": [
+   1,
+   8,
+   16,
+   16
+  ],
+  "class_name": "SEResidual"
+ },
+ "se_3": {
+  "category": "squeeze_excite",
+  "input_shape": [
+   1,
+   12,
+   16,
+   16
+  ],
+  "class_name": "ChannelGate"
+ },
+ "se_4": {
+  "category": "squeeze_excite",
+  "input_shape": [
+   1,
+   24,
+   16,
+   16
+  ],
+  "class_name": "SEBottleneck"
+ },
+ "two_input_1": {
+  "category": "two_input",
+  "input_shape": [
+   [
+    1,
+    3,
+    16,
+    16
+   ],
+   [
+    1,
+    3,
+    16,
+    16
+   ]
+  ],
+  "class_name": "SiameseFuse"
+ },
+ "two_input_2": {
+  "category": "two_input",
+  "input_shape": [
+   [
+    1,
+    3,
+    16,
+    16
+   ],
+   [
+    1,
+    5
+   ]
+  ],
+  "class_name": "ImageMetaNet"
+ },
+ "two_input_3": {
+  "category": "two_input",
+  "input_shape": [
+   [
+    1,
+    10
+   ],
+   [
+    1,
+    6
+   ]
+  ],
+  "class_name": "TwoTower"
+ },
+ "two_input_4": {
+  "category": "two_input",
+  "input_shape": [
+   [
+    1,
+    4,
+    16,
+    16
+   ],
+   [
+    1,
+    4,
+    16,
+    16
+   ]
+  ],
+  "class_name": "CrossFusion"
+ },
+ "modulelist_1": {
+  "category": "modulelist",
+  "input_shape": [
+   1,
+   8
+  ],
+  "class_name": "DeepMLP"
+ },
+ "modulelist_2": {
+  "category": "modulelist",
+  "input_shape": [
+   1,
+   4,
+   16,
+   16
+  ],
+  "class_name": "ConvStack"
+ },
+ "modulelist_3": {
+  "category": "modulelist",
+  "input_shape": [
+   1,
+   3,
+   16,
+   16
+  ],
+  "class_name": "SeqNet"
+ },
+ "modulelist_4": {
+  "category": "modulelist",
+  "input_shape": [
+   1,
+   6
+  ],
+  "class_name": "IndexedLayers"
+ }
+}

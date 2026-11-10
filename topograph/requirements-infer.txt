@@ -1,0 +1,23 @@
+# direct dependencies of tg-infer (exact pins in requirements-infer.lock.txt); python 3.11
+torch==2.11.0+cu129
+transformers==5.20.2
+peft==0.21.2
+accelerate==1.15.0
+vllm @ https://github.com/vllm-project/vllm/releases/download/v0.26.0/vllm-0.26.0%2Bcu129-cp38-abi3-manylinux_2_28_x86_64.whl#sha256=6ce4ca30616f0a35810391015622b197a7b8b267ed27f8716f0789db79ff578b
+torchvision==0.26.0+cu129
+torchaudio==2.11.0+cu129
+torchcodec==0.15.0+cu129
+xgrammar==0.2.7
+networkx==3.6.1
+matplotlib==3.11.2
+graphviz==0.21
+jsonschema==4.26.0
+json_repair==0.64.2
+pydantic==2.14.1
+scipy==1.17.1
+pandas==3.1.0
+PyYAML==6.0.3
+pytest==9.1.1
+gradio==6.30.0
+pillow==12.3.0
+safetensors==0.8.0

@@ -1,0 +1,22 @@
+# direct dependencies of tg-train (exact pins in requirements-train.lock.txt); python 3.11
+torch==2.11.0+cu128
+transformers==5.19.0
+trl==1.16.0
+peft==0.21.2
+accelerate==1.15.0
+datasets==5.1.0
+tensorboard==2.21.0
+flash-linear-attention==0.5.2
+networkx==3.6.1
+matplotlib==3.11.2
+graphviz==0.21
+jsonschema==4.26.0
+json_repair==0.64.2
+pydantic==2.14.1
+scipy==1.17.1
+pandas==3.1.0
+PyYAML==6.0.3
+pytest==9.1.1
+gradio==6.30.0
+pillow==12.3.0
+safetensors==0.8.0

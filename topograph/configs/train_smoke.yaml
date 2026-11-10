@@ -1,0 +1,12 @@
+tag: qwen35-08b-smoke
+model_dir: ${MODELS}/Qwen3.5-0.8B
+output_dir: runs/train_smoke
+lora_r: 8
+lora_alpha: 16
+lora_dropout: 0.05
+lr: 2.0e-4
+epochs: 1
+batch_size: 2
+grad_accum: 1
+sanity_n: 1
+sanity_max_new: 64

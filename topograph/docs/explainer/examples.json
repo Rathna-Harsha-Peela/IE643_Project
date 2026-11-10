@@ -1,0 +1,678 @@
+[
+ {
+  "id": "ex01",
+  "eval_set": "test",
+  "sample_id": "L0_0803",
+  "title": "A neuron-level MLP (tier L0)",
+  "kind": "zero_vs_ft",
+  "code": "class TierL0_ToyMLP_201(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.out = nn.Linear(3, 1)\n        self.fc1_u2 = nn.Linear(2, 1)\n        self.unused_op_35 = nn.Identity()\n        self.fc1_u0 = nn.Linear(2, 1)\n        self.fc1_u1 = nn.Linear(2, 1)\n\n    def forward(self, inp_tensor):\n        u0 = torch.relu(self.fc1_u0(inp_tensor))\n        u1 = torch.relu(self.fc1_u1(inp_tensor))\n        u2 = torch.relu(self.fc1_u2(inp_tensor))\n        h = torch.cat([u0, u1, u2], dim=1)\n        y = self.out(h)\n        _dead_val = self.unused_op_35(inp_tensor)\n        return y",
+  "tier": "L0",
+  "aug": "aug_variant_3",
+  "struct_seen": true,
+  "category": null,
+  "preds": [
+   {
+    "config": "base9b_zs_c",
+    "label": "9B zero-shot",
+    "finish": "stop",
+    "n_tokens": 268,
+    "valid": false,
+    "errors": [
+     "input node 0 'inp_tensor' has shape [1, 3], expected [1, 2]"
+    ],
+    "raw_head": "{\"nodes\":[{\"name\":\"inp_tensor\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,3]},{\"name\":\"fc1_u0\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,1]},{\"name\":\"relu_0\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,1]},{\"name\":\"fc1_u1\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,1]},{\"name\":\"relu",
+    "raw_tail": "\",\"shape\":[1,3]},{\"name\":\"out\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,1]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,1]}],\"edges\":[[0,1],[1,2],[0,3],[3,4],[0,5],[5,6],[2,7],[4,7],[6,7],[7,8],[8,9]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 0.8000000000000002,
+     "edge_f1": 0.5454545454545454,
+     "exact_strict": 0.0,
+     "isomorphic": 1.0,
+     "graph_similarity": 1.0,
+     "shape_acc": 0.875,
+     "pps": 1.0
+    },
+    "failures": [
+     "naming_only"
+    ],
+    "pred_png": "ex01_base9b_zs_c_pred.png",
+    "diff_png": "ex01_base9b_zs_c_diff.png"
+   },
+   {
+    "config": "ft9b_c",
+    "label": "9B fine-tuned",
+    "finish": "stop",
+    "n_tokens": 263,
+    "valid": true,
+    "errors": [],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,2]},{\"name\":\"fc1_u0\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,1]},{\"name\":\"relu\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,1]},{\"name\":\"fc1_u1\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,1]},{\"name\":\"relu_1\",\"op\":\"c",
+    "raw_tail": "\",\"shape\":[1,3]},{\"name\":\"out\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,1]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,1]}],\"edges\":[[0,1],[1,2],[0,3],[3,4],[0,5],[5,6],[2,7],[4,7],[6,7],[7,8],[8,9]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 1.0,
+     "edge_f1": 1.0,
+     "exact_strict": 1.0,
+     "isomorphic": 1.0,
+     "graph_similarity": 1.0,
+     "shape_acc": 1.0,
+     "pps": 1.0
+    },
+    "failures": [],
+    "pred_png": "ex01_ft9b_c_pred.png",
+    "diff_png": "ex01_ft9b_c_diff.png"
+   }
+  ],
+  "ref_png": "ex01_ref.png",
+  "ref_nodes": 10
+ },
+ {
+  "id": "ex02",
+  "eval_set": "test",
+  "sample_id": "L1_0886",
+  "title": "A linear chain with dead code (tier L1)",
+  "kind": "deadcode",
+  "code": "class TierL1_LinearChain_222(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.unused_op_77 = nn.Identity()\n        self.conv0 = nn.Conv2d(3, 16, kernel_size=5, padding=2)\n        self.act0 = nn.GELU()\n        self.conv1 = nn.Conv2d(16, 16, kernel_size=5, padding=2)\n\n    def forward(self, x):\n        x = self.conv0(x)\n        x = self.act0(x)\n        x = self.conv1(x)\n        x = torch.relu(x)\n        _dead_val = self.unused_op_77(x)\n        return x",
+  "tier": "L1",
+  "aug": "aug_variant_2",
+  "struct_seen": true,
+  "category": null,
+  "preds": [
+   {
+    "config": "ft9b_c",
+    "label": "9B fine-tuned",
+    "finish": "stop",
+    "n_tokens": 196,
+    "valid": true,
+    "errors": [],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,3,16,16]},{\"name\":\"conv0\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,16,16,16]},{\"name\":\"act0\",\"op\":\"call_module\",\"kind\":\"GELU\",\"shape\":[1,16,16,16]},{\"name\":\"conv1\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,16,16,16]},{",
+    "raw_tail": "\"kind\":\"Conv2d\",\"shape\":[1,16,16,16]},{\"name\":\"relu\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,16,16,16]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,16,16,16]}],\"edges\":[[0,1],[1,2],[2,3],[3,4],[4,5]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 1.0,
+     "edge_f1": 1.0,
+     "exact_strict": 1.0,
+     "isomorphic": 1.0,
+     "graph_similarity": 1.0,
+     "shape_acc": 1.0,
+     "pps": 1.0
+    },
+    "failures": [],
+    "pred_png": "ex02_ft9b_c_pred.png",
+    "diff_png": "ex02_ft9b_c_diff.png"
+   }
+  ],
+  "ref_png": "ex02_ref.png",
+  "ref_nodes": 6
+ },
+ {
+  "id": "ex03",
+  "eval_set": "test",
+  "sample_id": "L2_0804",
+  "title": "A residual network (tier L2): the missing skip edge",
+  "kind": "skip",
+  "code": "class TierL2_Residual_202(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.b0_conv1 = nn.Conv2d(32, 16, kernel_size=5, padding=2)\n        self.b0_bn1 = nn.BatchNorm2d(16)\n        self.b0_conv2 = nn.Conv2d(16, 32, kernel_size=1)\n        self.b0_bn2 = nn.BatchNorm2d(32)\n        self.b0_proj = nn.Conv2d(32, 32, kernel_size=1)\n        self.b1_conv1 = nn.Conv2d(32, 32, kernel_size=5, padding=2)\n        self.b1_bn1 = nn.BatchNorm2d(32)\n        self.b1_conv2 = nn.Conv2d(32, 32, kernel_size=1)\n        self.b1_bn2 = nn.BatchNorm2d(32)\n        self.b1_proj = nn.Conv2d(32, 32, kernel_size=1)\n\n    def forward(self, x):\n        res_0 = x\n        out_0 = torch.relu(self.b0_bn1(self.b0_conv1(x)))\n        out_0 = self.b0_bn2(self.b0_conv2(out_0))\n        res_0 = self.b0_proj(res_0)\n        x = torch.relu(out_0 + res_0)\n        res_1 = x\n        out_1 = torch.relu(self.b1_bn1(self.b1_conv1(x)))\n        out_1 = self.b1_bn2(self.b1_conv2(out_1))\n        res_1 = self.b1_proj(res_1)\n        x = torch.relu(out_1 + res_1)\n        return x",
+  "tier": "L2",
+  "aug": "none",
+  "struct_seen": false,
+  "category": null,
+  "preds": [
+   {
+    "config": "base9b_fs_c",
+    "label": "9B 3-shot",
+    "finish": "stop",
+    "n_tokens": 706,
+    "valid": false,
+    "errors": [
+     "edge [17, 18] points outside the 18 nodes",
+     "edge [18, 19] points outside the 18 nodes",
+     "edge [19, 20] points outside the 18 nodes",
+     "edge [20, 21] points outside the 18 nodes"
+    ],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,32,16,16]},{\"name\":\"b0_conv1\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,16,16,16]},{\"name\":\"b0_bn1\",\"op\":\"call_module\",\"kind\":\"BatchNorm2d\",\"shape\":[1,16,16,16]},{\"name\":\"relu\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,",
+    "raw_tail": "dges\":[[0,1],[1,2],[2,3],[3,4],[4,5],[0,6],[5,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[9,15],[15,16],[16,17],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,24],[24,25],[25,26],[26,27],[27,28]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 1.0,
+     "edge_f1": 0.8648648648648649,
+     "exact_strict": 0.0,
+     "isomorphic": 0.0,
+     "graph_similarity": 0.9315068493150684,
+     "shape_acc": 1.0,
+     "pps": 0.5714285714285714
+    },
+    "failures": [
+     "missing_skip_edge",
+     "missing_edge",
+     "extra_edge"
+    ],
+    "pred_png": "ex03_base9b_fs_c_pred.png",
+    "diff_png": "ex03_base9b_fs_c_diff.png"
+   },
+   {
+    "config": "ft9b_c",
+    "label": "9B fine-tuned",
+    "finish": "stop",
+    "n_tokens": 644,
+    "valid": true,
+    "errors": [],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,32,16,16]},{\"name\":\"b0_conv1\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,16,16,16]},{\"name\":\"b0_bn1\",\"op\":\"call_module\",\"kind\":\"BatchNorm2d\",\"shape\":[1,16,16,16]},{\"name\":\"relu\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,",
+    "raw_tail": "2,16,16]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,32,16,16]}],\"edges\":[[0,1],[1,2],[2,3],[3,4],[4,5],[0,6],[5,7],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[8,14],[13,15],[14,15],[15,16],[16,17]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 1.0,
+     "edge_f1": 1.0,
+     "exact_strict": 1.0,
+     "isomorphic": 1.0,
+     "graph_similarity": 1.0,
+     "shape_acc": 1.0,
+     "pps": 1.0
+    },
+    "failures": [],
+    "pred_png": "ex03_ft9b_c_pred.png",
+    "diff_png": "ex03_ft9b_c_diff.png"
+   }
+  ],
+  "ref_png": "ex03_ref.png",
+  "ref_nodes": 18
+ },
+ {
+  "id": "ex04",
+  "eval_set": "test",
+  "sample_id": "L3_0804",
+  "title": "Parallel branches joined by concat (tier L3)",
+  "kind": "branch",
+  "code": "class TierL3_MultiBranch_202(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.b0_c0 = nn.Conv2d(12, 8, kernel_size=5, padding=2)\n        self.b1_c0 = nn.Conv2d(12, 8, kernel_size=1, padding=0)\n        self.b1_c1 = nn.Conv2d(8, 8, kernel_size=1)\n        self.b2_c0 = nn.Conv2d(12, 8, kernel_size=3, padding=1)\n        self.head = nn.Conv2d(24, 16, kernel_size=1)\n\n    def forward(self, x):\n        b0 = torch.relu(self.b0_c0(x))\n        b1 = torch.relu(self.b1_c0(x))\n        b1 = torch.relu(self.b1_c1(b1))\n        b2 = torch.relu(self.b2_c0(x))\n        merged = torch.cat([b0, b1, b2], dim=1)\n        out = self.head(merged)\n        return out",
+  "tier": "L3",
+  "aug": "none",
+  "struct_seen": true,
+  "category": null,
+  "preds": [
+   {
+    "config": "base9b_fs_c",
+    "label": "9B 3-shot",
+    "finish": "stop",
+    "n_tokens": 405,
+    "valid": true,
+    "errors": [],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,12,16,16]},{\"name\":\"b0_c0\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,8,16,16]},{\"name\":\"relu\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,8,16,16]},{\"name\":\"b1_c0\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,8,16,16]},{",
+    "raw_tail": "\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,16,16,16]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,16,16,16]}],\"edges\":[[0,1],[1,2],[0,3],[3,4],[4,5],[5,6],[0,7],[7,8],[2,9],[6,9],[8,9],[9,10],[10,11]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 1.0,
+     "edge_f1": 1.0,
+     "exact_strict": 1.0,
+     "isomorphic": 1.0,
+     "graph_similarity": 1.0,
+     "shape_acc": 1.0,
+     "pps": 1.0
+    },
+    "failures": [],
+    "pred_png": "ex04_base9b_fs_c_pred.png",
+    "diff_png": "ex04_base9b_fs_c_diff.png"
+   }
+  ],
+  "ref_png": "ex04_ref.png",
+  "ref_nodes": 12
+ },
+ {
+  "id": "ex05",
+  "eval_set": "test",
+  "sample_id": "L4_0800",
+  "title": "A held-out nested topology (tier L4): memorisation vs generalisation",
+  "kind": "heldout",
+  "code": "class TierL4_Nested_201(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.stem = nn.Conv2d(8, 16, kernel_size=3, padding=1)\n        self.pa_conv0 = nn.Conv2d(16, 8, kernel_size=1, padding=0)\n        self.pa_conv1 = nn.Conv2d(8, 8, kernel_size=1, padding=0)\n        self.pa_conv2 = nn.Conv2d(8, 8, kernel_size=3, padding=1)\n        self.pb_conv0 = nn.Conv2d(16, 8, kernel_size=3, padding=1)\n        self.pb_conv1 = nn.Conv2d(8, 8, kernel_size=1, padding=0)\n        self.merge = nn.Conv2d(16, 16, kernel_size=1)\n        self.head = nn.Conv2d(16, 8, kernel_size=1)\n\n    def forward(self, x):\n        stem_out = torch.relu(self.stem(x))\n        pa = stem_out\n        pb = stem_out\n        pa = torch.relu(self.pa_conv0(pa))\n        pa = torch.relu(self.pa_conv1(pa))\n        pa = torch.relu(self.pa_conv2(pa))\n        pb = torch.relu(self.pb_conv0(pb))\n        pb = torch.relu(self.pb_conv1(pb))\n        cat_ab = torch.cat([pa, pb], dim=1)\n        merged = self.merge(cat_ab)\n        combined = torch.relu(merged + stem_out)\n        out = self.head(combined)\n        return out",
+  "tier": "L4",
+  "aug": "none",
+  "struct_seen": false,
+  "category": null,
+  "preds": [
+   {
+    "config": "ft2b_c",
+    "label": "2B fine-tuned",
+    "finish": "stop",
+    "n_tokens": 638,
+    "valid": false,
+    "errors": [
+     "node 13 'cat' has 1 input(s); 'cat' joins >=2 tensors (missing branch edge?)",
+     "node 14 'merge' has 2 inputs; a Conv2d layer takes exactly 1",
+     "node 15 'add' has 1 input; 'add' of two tensors needs 2 (missing skip edge?)"
+    ],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,8,16,16]},{\"name\":\"stem\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,16,16,16]},{\"name\":\"relu\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,16,16,16]},{\"name\":\"pa_conv0\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,8,16,16]",
+    "raw_tail": ",16,16]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,8,16,16]}],\"edges\":[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[2,9],[9,10],[10,11],[11,12],[8,13],[12,14],[13,14],[14,15],[15,16],[16,17],[17,18]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 1.0,
+     "edge_f1": 0.9230769230769231,
+     "exact_strict": 0.0,
+     "isomorphic": 0.0,
+     "graph_similarity": 0.961038961038961,
+     "shape_acc": 1.0,
+     "pps": 0.7142857142857143
+    },
+    "failures": [
+     "missing_skip_edge",
+     "extra_edge"
+    ],
+    "pred_png": "ex05_ft2b_c_pred.png",
+    "diff_png": "ex05_ft2b_c_diff.png"
+   },
+   {
+    "config": "ft9b_c",
+    "label": "9B fine-tuned",
+    "finish": "stop",
+    "n_tokens": 643,
+    "valid": true,
+    "errors": [],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,8,16,16]},{\"name\":\"stem\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,16,16,16]},{\"name\":\"relu\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,16,16,16]},{\"name\":\"pa_conv0\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,8,16,16]",
+    "raw_tail": "},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,8,16,16]}],\"edges\":[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[2,9],[9,10],[10,11],[11,12],[8,13],[12,13],[13,14],[14,15],[2,15],[15,16],[16,17],[17,18]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 1.0,
+     "edge_f1": 1.0,
+     "exact_strict": 1.0,
+     "isomorphic": 1.0,
+     "graph_similarity": 1.0,
+     "shape_acc": 1.0,
+     "pps": 1.0
+    },
+    "failures": [],
+    "pred_png": "ex05_ft9b_c_pred.png",
+    "diff_png": "ex05_ft9b_c_diff.png"
+   }
+  ],
+  "ref_png": "ex05_ref.png",
+  "ref_nodes": 19
+ },
+ {
+  "id": "ex06",
+  "eval_set": "test",
+  "sample_id": "L0_0857",
+  "title": "The zero-shot runaway loop",
+  "kind": "loop",
+  "code": "class TierL0_ToyMLP_215(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.fc1_u0 = nn.Linear(3, 1)\n        self.fc1_u1 = nn.Linear(3, 1)\n        self.fc1_u2 = nn.Linear(3, 1)\n        self.fc1_u3 = nn.Linear(3, 1)\n        self.fc2 = nn.Linear(4, 2)\n        self.out = nn.Linear(2, 2)\n\n    def forward(self, inp_tensor):\n        u0 = torch.relu(self.fc1_u0(inp_tensor))\n        u1 = torch.relu(self.fc1_u1(inp_tensor))\n        u2 = torch.relu(self.fc1_u2(inp_tensor))\n        u3 = torch.relu(self.fc1_u3(inp_tensor))\n        h = torch.cat([u0, u1, u2, u3], dim=1)\n        h = torch.relu(self.fc2(h))\n        y = self.out(h)\n        return y",
+  "tier": "L0",
+  "aug": "aug_variant_1",
+  "struct_seen": true,
+  "category": null,
+  "preds": [
+   {
+    "config": "base9b_zs_c",
+    "label": "9B zero-shot",
+    "finish": "length",
+    "n_tokens": 3072,
+    "valid": false,
+    "errors": [
+     "schema: [372] is too short"
+    ],
+    "raw_head": "{\"nodes\":[{\"name\":\"inp_tensor\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,3]},{\"name\":\"fc1_u0\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,1]},{\"name\":\"relu_0\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,1]},{\"name\":\"fc1_u1\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,1]},{\"name\":\"relu",
+    "raw_tail": "351],[351,352],[352,353],[353,354],[354,355],[355,356],[356,357],[357,358],[358,359],[359,360],[360,361],[361,362],[362,363],[363,364],[364,365],[365,366],[366,367],[367,368],[368,369],[369,370],[370,371],[371,372],[372,",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 0.0,
+     "edge_f1": 0.0,
+     "exact_strict": 0.0,
+     "isomorphic": 0.0,
+     "graph_similarity": 0.0,
+     "shape_acc": 0.0,
+     "pps": 0.0
+    },
+    "failures": [
+     "parse_fail"
+    ]
+   }
+  ],
+  "ref_png": "ex06_ref.png",
+  "ref_nodes": 14
+ },
+ {
+  "id": "ex07",
+  "eval_set": "ood",
+  "sample_id": "OOD_resnet_nested_2",
+  "title": "OOD: nested submodules (dotted scopes)",
+  "kind": "nested",
+  "code": "class ResUnit(nn.Module):\n    def __init__(self, c):\n        super().__init__()\n        self.conv_a = nn.Conv2d(c, c, 3, padding=1)\n        self.conv_b = nn.Conv2d(c, c, 3, padding=1)\n\n    def forward(self, inp):\n        h = F.relu(self.conv_a(inp))\n        return F.relu(self.conv_b(h) + inp)\n\n\nclass TwoUnitNet(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.unit_a = ResUnit(8)\n        self.unit_b = ResUnit(8)\n        self.final = nn.Conv2d(8, 2, 1)\n\n    def forward(self, feat):\n        return self.final(self.unit_b(self.unit_a(feat)))\n",
+  "tier": "OOD",
+  "aug": "none",
+  "struct_seen": false,
+  "category": "nested_basicblock",
+  "preds": [
+   {
+    "config": "ft9b_c",
+    "label": "9B fine-tuned",
+    "finish": "stop",
+    "n_tokens": 256,
+    "valid": false,
+    "errors": [
+     "node 1 'conv_a' is not a module declared in __init__ (hallucinated?)",
+     "node 3 'conv_b' is not a module declared in __init__ (hallucinated?)",
+     "self.unit_b.conv_b is used 1x in forward() but appears 0x in the graph",
+     "self.unit_b.conv_a is used 1x in forward() but appears 0x in the graph"
+    ],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,8,16,16]},{\"name\":\"conv_a\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,8,16,16]},{\"name\":\"relu\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,8,16,16]},{\"name\":\"conv_b\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,8,16,16]},",
+    "raw_tail": "\"shape\":[1,8,16,16]},{\"name\":\"final\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,2,16,16]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,2,16,16]}],\"edges\":[[0,1],[1,2],[2,3],[3,4],[0,4],[4,5],[5,6],[6,7]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 0.5714285714285714,
+     "edge_f1": 0.2727272727272727,
+     "exact_strict": 0.0,
+     "isomorphic": 0.0,
+     "graph_similarity": 0.6976744186046512,
+     "shape_acc": 1.0,
+     "pps": 0.42857142857142855
+    },
+    "failures": [
+     "missing_skip_edge",
+     "missing_edge",
+     "extra_edge",
+     "missing_node"
+    ],
+    "pred_png": "ex07_ft9b_c_pred.png",
+    "diff_png": "ex07_ft9b_c_diff.png"
+   },
+   {
+    "config": "ft9b_aug_c",
+    "label": "9B FT + synthetic",
+    "finish": "stop",
+    "n_tokens": 435,
+    "valid": true,
+    "errors": [],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,8,16,16]},{\"name\":\"unit_a_conv_a\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,8,16,16]},{\"name\":\"relu\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,8,16,16]},{\"name\":\"unit_a_conv_b\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\"",
+    "raw_tail": ":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,2,16,16]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,2,16,16]}],\"edges\":[[0,1],[1,2],[2,3],[3,4],[0,4],[4,5],[5,6],[6,7],[7,8],[8,9],[5,9],[9,10],[10,11],[11,12]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 1.0,
+     "edge_f1": 1.0,
+     "exact_strict": 1.0,
+     "isomorphic": 1.0,
+     "graph_similarity": 1.0,
+     "shape_acc": 1.0,
+     "pps": 0.9285714285714286
+    },
+    "failures": [],
+    "pred_png": "ex07_ft9b_aug_c_pred.png",
+    "diff_png": "ex07_ft9b_aug_c_diff.png"
+   }
+  ],
+  "ref_png": "ex07_ref.png",
+  "ref_nodes": 13
+ },
+ {
+  "id": "ex08",
+  "eval_set": "ood",
+  "sample_id": "OOD_modulelist_1",
+  "title": "OOD: an nn.ModuleList loop",
+  "kind": "modulelist",
+  "code": "class DeepMLP(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.layers = nn.ModuleList([nn.Linear(8, 8) for _ in range(3)])\n        self.out = nn.Linear(8, 2)\n\n    def forward(self, x):\n        for layer in self.layers:\n            x = torch.relu(layer(x))\n        return self.out(x)\n",
+  "tier": "OOD",
+  "aug": "none",
+  "struct_seen": false,
+  "category": "modulelist",
+  "preds": [
+   {
+    "config": "ft9b_c",
+    "label": "9B fine-tuned",
+    "finish": "stop",
+    "n_tokens": 226,
+    "valid": false,
+    "errors": [
+     "node 1 'layers' is not a module declared in __init__ (hallucinated?)",
+     "self.layers.0 is used 1x in forward() but appears 0x in the graph"
+    ],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,8]},{\"name\":\"layers\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,8]},{\"name\":\"relu\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,8]},{\"name\":\"layers_1\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,8]},{\"name\":\"relu_1\",\"op\":",
+    "raw_tail": "tion\",\"kind\":\"relu\",\"shape\":[1,8]},{\"name\":\"out\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,2]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,2]}],\"edges\":[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 0.8888888888888888,
+     "edge_f1": 0.75,
+     "exact_strict": 0.0,
+     "isomorphic": 1.0,
+     "graph_similarity": 1.0,
+     "shape_acc": 1.0,
+     "pps": 1.0
+    },
+    "failures": [
+     "naming_only"
+    ],
+    "pred_png": "ex08_ft9b_c_pred.png",
+    "diff_png": "ex08_ft9b_c_diff.png"
+   },
+   {
+    "config": "ft9b_aug_c",
+    "label": "9B FT + synthetic",
+    "finish": "stop",
+    "n_tokens": 228,
+    "valid": true,
+    "errors": [],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,8]},{\"name\":\"layers_0\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,8]},{\"name\":\"relu\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,8]},{\"name\":\"layers_1\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,8]},{\"name\":\"relu_1\",\"op",
+    "raw_tail": "tion\",\"kind\":\"relu\",\"shape\":[1,8]},{\"name\":\"out\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,2]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,2]}],\"edges\":[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 1.0,
+     "edge_f1": 1.0,
+     "exact_strict": 1.0,
+     "isomorphic": 1.0,
+     "graph_similarity": 1.0,
+     "shape_acc": 1.0,
+     "pps": 1.0
+    },
+    "failures": [],
+    "pred_png": "ex08_ft9b_aug_c_pred.png",
+    "diff_png": "ex08_ft9b_aug_c_diff.png"
+   }
+  ],
+  "ref_png": "ex08_ref.png",
+  "ref_nodes": 9
+ },
+ {
+  "id": "ex09",
+  "eval_set": "ood",
+  "sample_id": "OOD_se_1",
+  "title": "OOD: Squeeze-and-Excitation, fixed by verify-and-retry",
+  "kind": "retry",
+  "code": "class SEBlock(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.conv = nn.Conv2d(16, 16, 3, padding=1)\n        self.fc1 = nn.Linear(16, 4)\n        self.fc2 = nn.Linear(4, 16)\n\n    def forward(self, x):\n        y = torch.relu(self.conv(x))\n        s = y.mean((2, 3))\n        s = torch.sigmoid(self.fc2(torch.relu(self.fc1(s))))\n        s = s.unsqueeze(-1).unsqueeze(-1)\n        return y * s\n",
+  "tier": "OOD",
+  "aug": "none",
+  "struct_seen": false,
+  "category": "squeeze_excite",
+  "preds": [
+   {
+    "config": "ft9b_c_retry",
+    "label": "9B FT, before/after retry",
+    "finish": "stop",
+    "n_tokens": 635,
+    "valid": true,
+    "errors": [],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,16,16,16]},{\"name\":\"conv\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,16,16,16]},{\"name\":\"relu\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,16,16,16]},{\"name\":\"mean\",\"op\":\"call_method\",\"kind\":\"mean\",\"shape\":[1,16]},{\"name\":",
+    "raw_tail": "]},{\"name\":\"mul\",\"op\":\"call_function\",\"kind\":\"mul\",\"shape\":[1,16,16,16]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,16,16,16]}],\"edges\":[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[2,9],[8,9],[9,10]]}",
+    "rounds": 1,
+    "metrics": {
+     "node_f1": 0.9565217391304348,
+     "edge_f1": 0.8695652173913043,
+     "exact_strict": 0.0,
+     "isomorphic": 0.0,
+     "graph_similarity": 0.9130434782608696,
+     "shape_acc": 0.9090909090909091,
+     "pps": 0.7857142857142857
+    },
+    "failures": [
+     "missing_edge",
+     "extra_edge",
+     "missing_node"
+    ],
+    "initial_errors": [
+     "output node needs >=1 input and no outgoing edges (has 0 in, 0 out)",
+     "node 10 'output' is not reachable from any input",
+     "node 0 'x' does not lead to the output (dead end or dead code)",
+     "node 1 'conv' does not lead to the output (dead end or dead code)"
+    ],
+    "initial_png": "ex09_ft9b_c_retry_initial.png",
+    "initial_diff_png": "ex09_ft9b_c_retry_initial_diff.png",
+    "pred_png": "ex09_ft9b_c_retry_pred.png",
+    "diff_png": "ex09_ft9b_c_retry_diff.png"
+   }
+  ],
+  "ref_png": "ex09_ref.png",
+  "ref_nodes": 12
+ },
+ {
+  "id": "ex10",
+  "eval_set": "ood2",
+  "sample_id": "OOD2_deconv_2",
+  "title": "OOD-2: a transposed-convolution decoder (shape failure)",
+  "kind": "shape",
+  "code": "class DeconvSkip(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.down = nn.Conv2d(4, 8, 3, stride=2, padding=1)\n        self.mid = nn.Conv2d(8, 8, 3, padding=1)\n        self.up = nn.ConvTranspose2d(8, 4, 2, stride=2)\n\n    def forward(self, x):\n        d = F.relu(self.down(x))\n        m = F.relu(self.mid(d)) + d\n        return self.up(m) + x\n",
+  "tier": "OOD2",
+  "aug": "none",
+  "struct_seen": false,
+  "category": "transposed_conv",
+  "preds": [
+   {
+    "config": "ft9b_aug_c",
+    "label": "9B FT + synthetic",
+    "finish": "stop",
+    "n_tokens": 291,
+    "valid": false,
+    "errors": [
+     "node 7 'add_1' inputs [[1, 4, 16, 16], [1, 4, 32, 32]] are not broadcast-compatible"
+    ],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,4,16,16]},{\"name\":\"down\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,8,16,16]},{\"name\":\"relu\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,8,16,16]},{\"name\":\"mid\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,8,16,16]},{\"nam",
+    "raw_tail": "4,32,32]},{\"name\":\"add_1\",\"op\":\"call_function\",\"kind\":\"add\",\"shape\":[1,4,32,32]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,4,32,32]}],\"edges\":[[0,1],[1,2],[2,3],[3,4],[4,5],[2,5],[5,6],[6,7],[0,7],[7,8]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 1.0,
+     "edge_f1": 1.0,
+     "exact_strict": 1.0,
+     "isomorphic": 1.0,
+     "graph_similarity": 1.0,
+     "shape_acc": 0.1111111111111111,
+     "pps": 1.0
+    },
+    "failures": [
+     "shape_only"
+    ],
+    "pred_png": "ex10_ft9b_aug_c_pred.png",
+    "diff_png": "ex10_ft9b_aug_c_diff.png"
+   },
+   {
+    "config": "ceil_fs_c",
+    "label": "27B 3-shot",
+    "finish": "stop",
+    "n_tokens": 281,
+    "valid": true,
+    "errors": [],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,4,16,16]},{\"name\":\"down\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,8,8,8]},{\"name\":\"relu\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,8,8,8]},{\"name\":\"mid\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,8,8,8]},{\"name\":\"re",
+    "raw_tail": "4,16,16]},{\"name\":\"add_1\",\"op\":\"call_function\",\"kind\":\"add\",\"shape\":[1,4,16,16]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,4,16,16]}],\"edges\":[[0,1],[1,2],[2,3],[3,4],[2,5],[4,5],[5,6],[0,7],[6,7],[7,8]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 1.0,
+     "edge_f1": 1.0,
+     "exact_strict": 1.0,
+     "isomorphic": 1.0,
+     "graph_similarity": 1.0,
+     "shape_acc": 1.0,
+     "pps": 1.0
+    },
+    "failures": [],
+    "pred_png": "ex10_ceil_fs_c_pred.png",
+    "diff_png": "ex10_ceil_fs_c_diff.png"
+   }
+  ],
+  "ref_png": "ex10_ref.png",
+  "ref_nodes": 9
+ },
+ {
+  "id": "ex11",
+  "eval_set": "ood2",
+  "sample_id": "OOD2_attn_1",
+  "title": "OOD-2: attention with matmul and softmax",
+  "kind": "attn",
+  "code": "class TinyAttention(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.q = nn.Linear(8, 8)\n        self.k = nn.Linear(8, 8)\n        self.v = nn.Linear(8, 8)\n        self.o = nn.Linear(8, 4)\n\n    def forward(self, x):\n        q = self.q(x).unsqueeze(2)\n        k = self.k(x).unsqueeze(1)\n        w = torch.softmax(torch.matmul(q, k), dim=-1)\n        y = torch.matmul(w, self.v(x).unsqueeze(2)).squeeze(2)\n        return self.o(y)\n",
+  "tier": "OOD2",
+  "aug": "none",
+  "struct_seen": false,
+  "category": "matmul_attention",
+  "preds": [
+   {
+    "config": "ft9b_aug_c",
+    "label": "9B FT + synthetic",
+    "finish": "stop",
+    "n_tokens": 349,
+    "valid": true,
+    "errors": [],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,8]},{\"name\":\"q\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,8]},{\"name\":\"unsqueeze\",\"op\":\"call_method\",\"kind\":\"unsqueeze\",\"shape\":[1,8,1]},{\"name\":\"k\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,8]},{\"name\":\"unsqueeze_1\",\"o",
+    "raw_tail": "me\":\"o\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,4]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,4]}],\"edges\":[[0,1],[1,2],[0,3],[3,4],[2,5],[4,5],[5,6],[0,7],[7,8],[6,9],[8,9],[9,10],[10,11],[11,12]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 1.0,
+     "edge_f1": 1.0,
+     "exact_strict": 1.0,
+     "isomorphic": 1.0,
+     "graph_similarity": 1.0,
+     "shape_acc": 1.0,
+     "pps": 1.0
+    },
+    "failures": [],
+    "pred_png": "ex11_ft9b_aug_c_pred.png",
+    "diff_png": "ex11_ft9b_aug_c_diff.png"
+   },
+   {
+    "config": "ceil_fs_c",
+    "label": "27B 3-shot",
+    "finish": "stop",
+    "n_tokens": 355,
+    "valid": false,
+    "errors": [
+     "edge [12, 13] points outside the 13 nodes"
+    ],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,8]},{\"name\":\"q\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,8]},{\"name\":\"unsqueeze\",\"op\":\"call_method\",\"kind\":\"unsqueeze\",\"shape\":[1,8,1]},{\"name\":\"k\",\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,8]},{\"name\":\"unsqueeze_1\",\"o",
+    "raw_tail": "\"op\":\"call_module\",\"kind\":\"Linear\",\"shape\":[1,4]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,4]}],\"edges\":[[0,1],[1,2],[0,3],[3,4],[2,5],[4,5],[5,6],[0,7],[7,8],[6,9],[8,9],[9,10],[10,11],[11,12],[12,13]]}",
+    "rounds": 0,
+    "metrics": {
+     "node_f1": 1.0,
+     "edge_f1": 1.0,
+     "exact_strict": 1.0,
+     "isomorphic": 1.0,
+     "graph_similarity": 1.0,
+     "shape_acc": 0.6923076923076923,
+     "pps": 1.0
+    },
+    "failures": [
+     "shape_only"
+    ],
+    "pred_png": "ex11_ceil_fs_c_pred.png",
+    "diff_png": "ex11_ceil_fs_c_diff.png"
+   }
+  ],
+  "ref_png": "ex11_ref.png",
+  "ref_nodes": 13
+ },
+ {
+  "id": "ex12",
+  "eval_set": "untraceable",
+  "sample_id": "UNT_data_dependent_if",
+  "title": "Untraceable code: no torch.fx reference exists",
+  "kind": "untraceable",
+  "code": "class GatedByMean(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.conv = nn.Conv2d(3, 8, 3, padding=1)\n        self.alt = nn.Conv2d(3, 8, 1)\n\n    def forward(self, x):\n        if x.mean() > 0:\n            return torch.relu(self.conv(x))\n        return self.alt(x)\n",
+  "tier": "UNTRACEABLE",
+  "aug": "none",
+  "struct_seen": false,
+  "category": "untraceable",
+  "preds": [
+   {
+    "config": "ft9b_c",
+    "label": "9B fine-tuned",
+    "finish": "stop",
+    "n_tokens": 160,
+    "valid": false,
+    "errors": [
+     "output node has 2 inputs; forward() returns a single tensor",
+     "node 1 'conv' is dead code (its result never reaches the return)"
+    ],
+    "raw_head": "{\"nodes\":[{\"name\":\"x\",\"op\":\"placeholder\",\"kind\":\"placeholder\",\"shape\":[1,3,16,16]},{\"name\":\"conv\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,8,16,16]},{\"name\":\"relu\",\"op\":\"call_function\",\"kind\":\"relu\",\"shape\":[1,8,16,16]},{\"name\":\"alt\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,8,16,16]},{\"nam",
+    "raw_tail": "tion\",\"kind\":\"relu\",\"shape\":[1,8,16,16]},{\"name\":\"alt\",\"op\":\"call_module\",\"kind\":\"Conv2d\",\"shape\":[1,8,16,16]},{\"name\":\"output\",\"op\":\"output\",\"kind\":\"output\",\"shape\":[1,8,16,16]}],\"edges\":[[0,1],[1,2],[0,3],[2,4],[3,4]]}",
+    "rounds": 0,
+    "pred_png": "ex12_ft9b_c_pred.png"
+   }
+  ]
+ }
+]

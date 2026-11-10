@@ -1,0 +1,35 @@
+JobID|JobName|Partition|State|Elapsed|AllocTRES|NodeList|Start
+363532|tg-cpusmoke|interactive|FAILED|00:00:00|billing=16,cpu=16,node=1|cn22-a40|2026-10-24T18:21:57
+363534|tg-cpusmoke|interactive|FAILED|00:00:00|billing=16,cpu=16,node=1|cn22-a40|2026-10-24T18:22:27
+363535|tg-cpusmoke|interactive|FAILED|00:05:17|billing=16,cpu=16,node=1|cn11-dgx|2026-10-24T18:23:27
+363542|tg-cpusmoke|interactive|FAILED|00:00:35|billing=16,cpu=16,node=1|cn11-dgx|2026-10-24T18:31:58
+363554|tg-cpusmoke|interactive|FAILED|00:01:55|billing=16,cpu=16,node=1|cn11-dgx|2026-10-24T18:57:34
+363569|tg-cpusmoke|interactive|CANCELLED by 10857|00:22:26|billing=16,cpu=16,node=1|cn11-dgx|2026-10-24T19:15:13
+363587|tg-smoke|l40|FAILED|00:10:04|billing=8,cpu=8,gres/gpu=1,node=1|cn44-l40|2026-10-24T19:56:47
+363597|tg-cpusmoke|interactive|CANCELLED by 10857|00:28:05|billing=16,cpu=16,node=1|cn11-dgx|2026-10-24T19:41:16
+363637|tg-smoke|l40|COMPLETED|00:20:25|billing=8,cpu=8,gres/gpu=1,node=1|cn44-l40|2026-10-24T20:08:17
+363789|tg-base-p0|l40|CANCELLED by 10857|00:18:23|billing=8,cpu=8,gres/gpu=1,node=1|cn43-l40|2026-10-24T23:21:18
+363790|tg-base-p1|l40|CANCELLED by 10857|00:18:23|billing=8,cpu=8,gres/gpu=1,node=1|cn41-l40|2026-10-24T23:21:18
+363791|tg-train-2b|l40|CANCELLED by 10857|00:18:23|billing=8,cpu=8,gres/gpu=1,node=1|cn41-l40|2026-10-24T23:21:18
+363792|tg-train-9b|l40|COMPLETED|01:43:07|billing=8,cpu=8,gres/gpu=1,node=1|cn41-l40|2026-10-24T23:49:19
+363815|tg-base-p0|l40|COMPLETED|01:50:27|billing=8,cpu=8,gres/gpu=1,node=1|cn41-l40|2026-10-24T23:49:19
+363816|tg-base-p1|l40|COMPLETED|00:51:26|billing=8,cpu=8,gres/gpu=1,node=1|cn44-l40|2026-10-24T23:49:19
+363817|tg-train-2b|l40|COMPLETED|00:38:46|billing=8,cpu=8,gres/gpu=1,node=1|cn43-l40|2026-10-24T23:49:19
+363818|tg-ftinfer|l40|COMPLETED|00:58:44|billing=8,cpu=8,gres/gpu=1,node=1|cn41-l40|2026-10-25T01:32:27
+363875|tg-ftinfer-2b|l40|COMPLETED|00:12:59|billing=8,cpu=8,gres/gpu=1,node=1|cn42-l40|2026-10-25T00:28:46
+363885|tg-think32k|l40|COMPLETED|01:08:46|billing=8,cpu=8,gres/gpu=1,node=1|cn42-l40|2026-10-25T00:41:48
+363911|tg-sc5|l40|COMPLETED|00:07:58|billing=8,cpu=8,gres/gpu=1,node=1|cn41-l40|2026-10-25T02:03:18
+363912|tg-thinkc|l40|COMPLETED|01:36:24|billing=8,cpu=8,gres/gpu=1,node=1|cn42-l40|2026-10-25T02:03:18
+363915|tg-aug9b|l40|COMPLETED|03:35:34|billing=8,cpu=8,gres/gpu=1,node=1|cn41-l40|2026-10-25T02:13:18
+363916|tg-aug2b|l40|COMPLETED|01:41:29|billing=8,cpu=8,gres/gpu=1,node=1|cn42-l40|2026-10-25T02:13:18
+363923|tg-combo|l40|COMPLETED|00:28:05|billing=8,cpu=8,gres/gpu=1,node=1|cn41-l40|2026-10-25T02:32:19
+363925|tg-ceiling|l40|CANCELLED by 10857|00:07:50|billing=8,cpu=8,gres/gpu=1,node=1|cn41-l40|2026-10-25T03:00:25
+363928|tg-ceiling|l40|COMPLETED|01:02:38|billing=8,cpu=8,gres/gpu=1,node=1|cn41-l40|2026-10-25T03:08:19
+363936|tg-ceilretry|l40|COMPLETED|00:37:04|billing=8,cpu=8,gres/gpu=1,node=1|cn41-l40|2026-10-25T03:40:49
+363950|tg-ood2|l40|COMPLETED|00:55:33|billing=8,cpu=8,gres/gpu=1,node=1|cn42-l40|2026-10-25T04:00:17
+363954|tg-ceilfsretry|l40|COMPLETED|00:15:23|billing=8,cpu=8,gres/gpu=1,node=1|cn41-l40|2026-10-25T04:11:50
+363956|tg-aug9b-extra|l40|COMPLETED|00:20:42|billing=8,cpu=8,gres/gpu=1,node=1|cn44-l40|2026-10-25T05:49:19
+363997|tg-cpueval|interactive|COMPLETED|00:04:56|billing=16,cpu=16,node=1|cn11-dgx|2026-10-25T06:10:51
+364212|tg-app|interactive|TIMEOUT|01:00:02|billing=8,cpu=8,gres/gpu=1,node=1|cn41-l40|2026-10-25T13:58:26
+364274|tg-cpucheck|interactive|CANCELLED by 10857|00:02:09|billing=16,cpu=16,node=1|cn11-dgx|2026-10-25T15:23:28
+364277|tg-cpucheck|interactive|COMPLETED|00:10:18|billing=16,cpu=16,node=1|cn11-dgx|2026-10-25T15:25:58

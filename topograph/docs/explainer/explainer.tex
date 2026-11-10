@@ -1,0 +1,496 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.1cm]{geometry}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+\usepackage[most]{tcolorbox}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\definecolor{codebg}{RGB}{247,247,245}
+\definecolor{keyw}{RGB}{42,120,214}
+\definecolor{strc}{RGB}{0,131,0}
+\lstdefinestyle{py}{language=Python,basicstyle=\ttfamily\scriptsize,backgroundcolor=\color{codebg},
+  keywordstyle=\color{keyw}\bfseries,stringstyle=\color{strc},commentstyle=\color{gray},showstringspaces=false,
+  frame=single,rulecolor=\color{gray!40},breaklines=true,columns=fullflexible,aboveskip=4pt,belowskip=4pt}
+\lstdefinestyle{plain}{basicstyle=\ttfamily\scriptsize,backgroundcolor=\color{codebg},frame=single,
+  rulecolor=\color{gray!40},breaklines=true,columns=fullflexible}
+\newtcolorbox{keybox}[1]{colback=blue!3,colframe=blue!40!black,fonttitle=\bfseries,title=#1,boxrule=0.6pt,arc=2pt}
+\newtcolorbox{warnbox}[1]{colback=orange!4,colframe=orange!60!black,fonttitle=\bfseries,title=#1,boxrule=0.6pt,arc=2pt}
+\setlist{itemsep=2pt,topsep=3pt}
+\captionsetup{font=small}
+\sloppy
+
+\title{\textbf{TopoGraph: teaching LLMs to draw the dataflow graph of PyTorch code}\\[4pt]
+\large An explainer of the whole project: data, code, journey, results, examples and caveats}
+\author{IE 643 (IIT Bombay, Autumn 2026)\\Team MachineUnlearning: Devanshu Jha \& Peela Rathna Harsha\\
+\small Written from the project repository (code, logs and result files in \texttt{IE643\_Project/topograph})}
+\date{25 October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{keybox}{The project in one paragraph}
+Given the source code of a PyTorch \texttt{nn.Module}, a large language model (LLM) must write down the
+\emph{forward-pass dataflow graph} of that module: one node per layer or operation, one edge per tensor that flows
+between them, plus each node's kind and output tensor shape. The exact answer is computed by \texttt{torch.fx}, so we
+can grade every prediction automatically. We built the full pipeline (data splits, a reference ``oracle'', a validator
+that checks a graph \emph{without} knowing the answer, many metrics, a graph drawer, LoRA fine-tuning, fast inference
+with constrained decoding and self-correction, an evaluation suite and a demo app) and ran 30+ experiments with
+Qwen3.5 (0.8B--27B) and Qwen2.5-Coder-7B. \textbf{Main result:} fine-tuning makes a 9B model essentially perfect on
+the dataset's own distribution (99.7\% valid, 100\% on held-out topologies), but it breaks on genuinely new code
+(47.5\% on our hand-written out-of-distribution set). Adding $\sim$2{,}800 randomly generated, automatically labelled
+training modules fixes most of that (95\%; 97.5\% with validator-driven retry), while a 27B general model with retry is
+the most robust on code that uses operators nobody trained on.
+\end{keybox}
+
+\tableofcontents
+\clearpage
+
+%==========================================================================================================
+\section{The task, with one complete example}\label{sec:task}
+
+Take this small network from the dataset (sample \texttt{L0\_0000}):
+
+\lstinputlisting[style=py]{code/intro.py}
+
+PyTorch's \texttt{torch.fx.symbolic\_trace} runs \texttt{forward} with placeholder values and records every operation.
+After removing dead code and propagating shapes, it yields the graph in Figure~\ref{fig:intro}: an input node
+(\texttt{placeholder}), one node per executed layer (\texttt{call\_module}) or function (\texttt{call\_function}), and one
+\texttt{output} node. Edges say ``the output of $u$ is an input of $v$''.
+
+\begin{figure}[H]\centering
+\begin{minipage}[b]{0.30\linewidth}\centering\includegraphics[width=\linewidth,height=0.40\textheight,keepaspectratio]{figs/intro_L0_0000.png}\\\footnotesize(a) the reference graph\end{minipage}\hspace{1cm}
+\begin{minipage}[b]{0.45\linewidth}\centering\includegraphics[width=\linewidth,height=0.40\textheight,keepaspectratio]{figs/intro_L0_0000_neurons.png}\\\footnotesize(b) display option: small \texttt{Linear} layers drawn as neurons\end{minipage}
+\caption{The torch.fx graph of the module above, drawn by our visualiser. Blue boxes are layers (\texttt{call\_module}:
+name, class, output shape); white rounded boxes are functions; grey ellipses are the input and output. The dashed box is
+a ``hierarchy cluster'': layers that share a name prefix (\texttt{fc1\_}).}\label{fig:intro}
+\end{figure}
+
+\paragraph{What the model has to output.} The LLM writes the same graph in a compact JSON format we call
+\textbf{CG-JSON} (``compact graph JSON''): a list of nodes (\texttt{name}, \texttt{op}, \texttt{kind}, \texttt{shape})
+and a list of edges as index pairs into that list. For the example above the full answer is:
+\lstinputlisting[style=plain]{code/intro_cg.json}
+
+\paragraph{Why this is a good test of an LLM.} The model must (i) find which layers are actually used and in what order,
+(ii) follow variables through the code to get the wiring right, including long \emph{skip connections} and merges,
+(iii) know PyTorch naming conventions (\texttt{relu}, \texttt{relu\_1}, \dots), and (iv) do arithmetic on tensor shapes.
+Because \texttt{torch.fx} gives the exact answer, everything can be scored automatically. \texttt{torch.fx} is therefore
+both the \emph{label source} and the \emph{upper bound} (it scores 100\% on every traceable set by construction). The
+LLM is interesting where tracing is impossible (data-dependent \texttt{if}s, incomplete code) and as a study of how well
+LLMs reason about graph structure.
+
+%==========================================================================================================
+\section{The data}\label{sec:data}
+
+\subsection{The given dataset (5,000 samples)}
+Our teammate built the dataset: 5{,}000 JSON records, each with \texttt{source\_code} (exactly one \texttt{nn.Module}
+class) and its \texttt{target\_graph} from \texttt{torch.fx}. It is organised in five \emph{complexity tiers}:
+
+\begin{center}\small
+\begin{tabular}{lp{8.0cm}cc}\toprule
+Tier & What the architectures look like & nodes (min/med/max) & distinct topologies \\\midrule
+L0 & toy MLP where every hidden unit is its own \texttt{Linear(k,1)} (``neurons'') & 8 / 10 / 14 & 6 \\
+L1 & linear chain of conv / batch-norm / activation / dropout & 6 / 15 / 26 & 21 \\
+L2 & residual blocks (skip connection, optional projection) & 9 / 17 / 26 & 14 \\
+L3 & multiple parallel branches merged by \texttt{torch.cat} & 8 / 12 / 20 & 12 \\
+L4 & nested: stem $\to$ 2 paths $\to$ concat $\to$ merge $\to$ residual add $\to$ head & 15 / 17 / 19 & 4 \\\bottomrule
+\end{tabular}
+\end{center}
+
+There are 1{,}250 \emph{families} (one base architecture each), and every family appears in four variants with an
+\emph{identical} graph: the original, the forward argument renamed (e.g.\ \texttt{feat\_map}), dead code inserted
+(\texttt{self.unused\_op\_K = nn.Identity()} that is called but never used), and all three changes plus a shuffled
+\texttt{\_\_init\_\_}. The official split is 4{,}000 train / 1{,}000 test, separated by family. Inputs are always batch 1
+and $16\times16$ images, so shapes are predictable from the code (Figure~\ref{fig:sizes}).
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\linewidth]{figs/dataset_sizes.png}
+\caption{Graph sizes per tier (all 5,000 samples).}\label{fig:sizes}
+\end{figure}
+
+\begin{warnbox}{Three weaknesses of the dataset we had to design around}
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Very few topologies.} Ignoring names, there are only \textbf{54 distinct graph structures} in all 5{,}000
+samples (L4 has 4), and every structure in the official test also occurs in training. The official test therefore
+measures ``new code, \emph{seen} topology''. A model could score highly by memorising templates.
+\item \textbf{Class names leak the tier} (\texttt{TierL2\_Residual\_17}).
+\item \textbf{Everything is flat}: no nested submodule classes, no \texttt{ModuleList}, no pooling in most tiers.
+\end{enumerate}
+\end{warnbox}
+
+\subsection{The evaluation sets we added}
+\begin{itemize}[leftmargin=*]
+\item \textbf{test} (1{,}000): the official test, unchanged. 200 of its samples happen to have a structure we held out
+(below), so we can split it into ``seen'' and ``held-out'' topologies.
+\item \textbf{novel\_topo} (564): before any training we removed 11 of the topology classes (1--4 per tier, chosen with a
+fixed random seed, never the largest) from the training data entirely. \texttt{novel\_topo} contains official-train
+samples with those structures, so the fine-tuned models have never seen these graph shapes.
+\item \textbf{test\_anon} (1{,}000): the official test with every class renamed to \texttt{Net}.
+\item \textbf{OOD-1} (40): hand-written ``out-of-distribution'' modules in 10 categories: MLPs with LayerNorm/GELU,
+VGG-style with pooling, nested ResNet blocks (submodule classes), bottlenecks with \texttt{F.relu}, Inception branches,
+U-Net with up-sampling, DenseNet concatenations, Squeeze-and-Excitation (tensor methods + broadcasting multiply),
+two-input models, and \texttt{ModuleList}/\texttt{Sequential} loops.
+\item \textbf{OOD-2} (21): written \emph{after} the synthetic generator (Section~\ref{sec:synth}) was frozen, using
+constructs that occur in neither the dataset nor the generator: functional pooling, \texttt{view}/\texttt{reshape}/
+\texttt{permute}, attention with \texttt{matmul}+\texttt{softmax}, transposed convolutions, GroupNorm/PReLU/ELU/Hardswish,
+\texttt{torch.stack}, scalar arithmetic. It is the most honest generalisation test we have.
+\item \textbf{untraceable} (6): modules \texttt{torch.fx} cannot trace (data-dependent \texttt{if}/\texttt{while},
+\texttt{assert}, \texttt{int(x.shape)}): no reference, used only to show what models do.
+\item \textbf{val} (160) and \textbf{test\_mini} (100, stratified) for training sanity checks and expensive experiments.
+\end{itemize}
+Fine-tuning used \textbf{train\_ft} = 3{,}068 samples (official train minus the held-out structures minus val).
+Nothing from any evaluation set was ever used for training, prompts or model selection.
+
+\subsection{Synthetic training data (the ``aug'' experiment)}\label{sec:synth}
+To attack the ``54 topologies'' problem we wrote a generator (\texttt{scripts/gen\_synthetic.py}) that composes random
+architectures from general PyTorch building blocks (residual blocks, branch-concat, pooling, U-Net skips, dense
+concatenations, gating, nested block classes, \texttt{Sequential}, \texttt{ModuleList} loops, two-input fusion, MLPs),
+with random (sometimes deliberately misleading) attribute names. Every module is labelled by the same oracle and kept only
+if the validator accepts the gold graph. We generated 3{,}200 modules (2{,}090 distinct structures); 2{,}809 fit the token
+budget and were added to train\_ft. \textbf{Leakage guard:} any generated module whose structure equals a
+\texttt{novel\_topo} or OOD-1 structure was discarded (264 were); a separate audit found zero overlap.
+
+%==========================================================================================================
+\section{How the system works (and where the code is)}\label{sec:system}
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}[box/.style={draw,rounded corners=2pt,fill=#1,align=center,font=\small,minimum height=11mm,text width=26mm},>={Stealth[length=2mm]}]
+\node[box=gray!10]   (data)   at (0,0)     {dataset + splits\\\scriptsize prepare\_data.py};
+\node[box=blue!8]    (prompt) at (3.3,0)   {prompt: rules + code\\\scriptsize tgraph/prompts.py};
+\node[box=blue!8]    (llm)    at (6.6,0)   {LLM (Qwen3.5,\\base or LoRA)\\\scriptsize generate.py};
+\node[box=blue!8]    (parse)  at (9.9,0)   {parse JSON\\\scriptsize tgraph/parse.py};
+\node[box=orange!12] (val)    at (13.2,0)  {validator V0--V4\\\scriptsize tgraph/validate.py};
+\node[box=gray!10]   (train)  at (0,-2.4)  {LoRA fine-tuning\\\scriptsize train\_sft.py};
+\node[box=orange!12] (retry)  at (6.6,-2.4) {retry: send the\\validator's messages};
+\node[box=gray!10]   (oracle) at (9.9,-2.4) {oracle (torch.fx)\\\scriptsize tgraph/oracle.py};
+\node[box=green!10]  (met)    at (13.2,-2.4) {metrics vs reference\\\scriptsize tgraph/metrics.py};
+\node[box=green!10]  (out)    at (13.2,-4.6) {tables, figures,\\gallery, app};
+\draw[->] (data) -- (prompt); \draw[->] (prompt) -- (llm); \draw[->] (llm) -- (parse); \draw[->] (parse) -- (val);
+\draw[->] (data) -- (train); \draw[->] (train.east) -- ++(1.5,0) |- ([yshift=-3mm]llm.west);
+\draw[->] (val.south west) -- node[font=\scriptsize,sloped,above]{if errors} (retry.north east);
+\draw[->] (retry) -- (llm);
+\draw[->] (val) -- (met); \draw[->] (oracle) -- (met); \draw[->] (met) -- (out);
+\end{tikzpicture}
+\caption{The pipeline. The validator never sees the answer, so it can be used at inference time (retry) and in the
+app; the oracle is used only for scoring.}\label{fig:pipeline}
+\end{figure}
+
+\begin{center}\small
+\begin{tabular}{p{4.1cm}p{11.3cm}}\toprule
+File & What it does \\\midrule
+\texttt{tgraph/oracle.py} & runs \texttt{torch.fx}: trace, remove dead code, propagate shapes. Reproduces all 5{,}000 labels byte-for-byte (a test checks this). A sandboxed version runs user code in a separate process with a 20\,s limit. \\
+\texttt{tgraph/schema.py} & converts between the dataset format and CG-JSON; the JSON schema used for constrained decoding. \\
+\texttt{tgraph/prompts.py} & the system prompt (8 rules: node order, naming, \texttt{call\_module} vs \texttt{call\_function}, dead code, shape convention, edge format), chat rendering, few-shot and retry messages. \\
+\texttt{tgraph/parse.py} & extracts JSON from raw model text (removes \texttt{<think>} blocks and code fences, finds the first balanced \texttt{\{\dots\}}, repairs truncated JSON). \\
+\texttt{tgraph/codeinfo.py} & reads the source with Python's \texttt{ast} (never executes it): which layers \texttt{\_\_init\_\_} declares, with which arguments, and which of them actually reach the \texttt{return} (a backward ``liveness'' pass). \\
+\texttt{tgraph/validate.py} & the 5-level checker (below). \\
+\raggedright \texttt{tgraph/align.py}, \texttt{metrics.py}, \texttt{properties.py}, \texttt{failures.py} & node matching, all metrics, topological properties, failure labels. \\
+\texttt{tgraph/visualize.py} & Graphviz drawings: single graph, side-by-side, colour-coded diff, neuron expansion; matplotlib fallback. \\
+\texttt{scripts/} & \texttt{prepare\_data}, \texttt{build\_ood}, \texttt{gen\_synthetic}, \texttt{train\_sft}, \texttt{merge\_lora}, \texttt{generate}, \texttt{run\_eval}, \texttt{aggregate}, \texttt{plots}, \texttt{gallery}, \dots \\
+\texttt{app/} & Gradio demo: paste code $\to$ predicted graph, reference, diff, metrics, validity report. \\
+\texttt{configs/}\allowbreak\texttt{experiments.yaml} & every inference configuration (model, prompt mode, decoding, eval sets). \\\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{The validator: checking a graph without knowing the answer}
+\begin{center}\small
+\begin{tabular}{lp{12.5cm}}\toprule
+Level & Checks \\\midrule
+V0 parse & the output is JSON and follows the schema \\
+V1 structure & unique names; edges point to existing nodes; no self-loops/duplicates; one input, one output at the end; no cycles; nodes listed in execution order; every node reachable from the input and leading to the output \\
+V2 arity & \texttt{add}/\texttt{mul} need two tensor inputs, \texttt{cat} at least two, a \texttt{Conv2d} exactly one, \dots \\
+V3 code consistency & every \texttt{call\_module} node is a layer declared in \texttt{\_\_init\_\_} (otherwise ``hallucinated''), with the declared class; every used layer appears as often as it is called; dead layers do not appear \\
+V4 shapes & e.g.\ a \texttt{Conv2d}'s channel count equals its \texttt{out\_channels}; activations keep the shape; \texttt{add} inputs broadcast; \texttt{cat} sums channels; the input shape follows the convention \\\bottomrule
+\end{tabular}
+\end{center}
+A graph is \textbf{fully valid} if it passes V0--V4. The validator has zero false alarms on all 5{,}000 gold graphs and on
+all 61 OOD gold graphs, and catches every synthetic corruption in the tests. Its messages are short English sentences
+(e.g.\ \texttt{node 15 'add' has 1 input; 'add' of two tensors needs 2 (missing skip edge?)}), which is what makes
+\emph{verify-and-retry} possible: failing graphs are sent back to the model together with these messages.
+
+\subsection{Metrics: how close is a prediction to the reference?}
+\begin{itemize}[leftmargin=*]
+\item \textbf{Node / edge F1}: nodes are matched by name; an edge is correct if the same named pair is connected.
+\item \textbf{Exact match}: same nodes (name, op, kind) and same edge set. \textbf{Isomorphic}: same graph up to renaming
+(only structure and kinds count).
+\item \textbf{Graph similarity} $=1-$ normalised edit distance (how many nodes/edges must change). We validated this
+cheap distance against the true graph edit distance on 1{,}378 pairs: Spearman correlation \textbf{0.998}
+(Figure~\ref{fig:F8}).
+\item \textbf{Property preservation (PPS)}: share of 14 topological properties that match (depth, width, number of
+branches/merges/skip edges/paths, \dots). \textbf{Shape accuracy}: share of matched nodes with the right shape.
+\item Every number comes with a bootstrap 95\% confidence interval; results are sliced by tier, size, augmentation,
+seen/held-out topology and OOD category.
+\end{itemize}
+
+\subsection{Models, fine-tuning and inference}
+\begin{itemize}[leftmargin=*]
+\item \textbf{Models.} Qwen3.5-2B and -9B (the 9B was already on the cluster), Qwen3.5-27B in FP8 as the ``ceiling'',
+Qwen2.5-Coder-7B as an older code-specialised baseline. Qwen3.5 mixes normal attention with ``Gated DeltaNet''
+linear-attention layers, which needs special GPU kernels (\texttt{flash-linear-attention}).
+\item \textbf{Prompting.} Zero-shot (rules + code) and 3-shot (plus three solved training examples).
+\item \textbf{Fine-tuning} (LoRA, bf16, 2 epochs): small trainable matrices added to every attention, MLP and
+linear-attention projection; the loss is computed only on the answer tokens. Training is short: 2B 0.5\,h, 9B 1.5\,h
+(3\,h with synthetic data) on one NVIDIA L40S. Training and inference use byte-identical prompts.
+\item \textbf{Inference} with vLLM, greedy decoding. \emph{Constrained decoding} forces the output to match the JSON
+schema. \emph{Verify-and-retry}: up to 2 extra rounds with the validator's messages. \emph{Self-consistency}: 5 samples,
+the validator picks. \emph{Thinking mode}: Qwen3.5 reasons in a \texttt{<think>} block before answering.
+\end{itemize}
+
+%==========================================================================================================
+\section{The journey: what we did, what broke, what we changed}\label{sec:journey}
+
+\noindent\textbf{1. Setting up without disturbing the other project.} The cluster account also runs a separate research
+project whose final evaluation depends on bit-exact caches. Everything here (two new Python environments, model
+downloads, Hugging Face / Triton / vLLM / pip caches) lives under \texttt{\textasciitilde/IE643\_Project}. One leak was
+found and fixed: vLLM and flashinfer wrote caches into the shared home folder; they were moved and redirected.
+
+\noindent\textbf{2. Getting the software stack to run} took several rounds:
+\begin{itemize}[leftmargin=*]
+\item The GPU driver supports CUDA 12.8, but the newest vLLM needs a newer PyTorch with no CUDA-12.8 build $\to$ vLLM
+0.26 with a CUDA 12.9 build (CUDA minor-version compatibility, verified on the GPU).
+\item \texttt{import vllm} failed three times in a row: a video-decoding library built for CUDA 13, then missing FFmpeg
+libraries, then a C++ runtime that was too old. Each was fixed inside our own environment.
+\item vLLM's default sampler tries to compile CUDA code at run time, and the cluster has no CUDA compiler $\to$ switched
+to vLLM's PyTorch sampler.
+\item transformers picks the fast Triton kernels for Qwen3.5 even on a CPU, where Triton crashes $\to$ a switch that
+disables them on CPU-only runs. Even then, \textbf{training Qwen3.5 on a CPU was hopeless} (one step of 870 tokens did
+not finish in 25 minutes), so all training happened on GPUs.
+\item The installed library versions had renamed training arguments; the 27B model needed fewer parallel sequences to
+fit next to its weights.
+\end{itemize}
+
+\noindent\textbf{3. Verifying before spending GPU time.} Before the real runs: all 28 unit tests (oracle = labels on all
+5{,}000 samples, validator silent on all gold graphs, metrics behave on corruptions), a merge check (merged weights
+reproduce the adapter within bf16 rounding), a dry run of the whole evaluation chain on fake predictions, a GPU smoke test
+(9B: 12\,s per step, 21\,GB), and a token-level check that the model is trained on exactly the answer plus one end token.
+
+\noindent\textbf{4. The prompt bug.} The first real zero-shot run scored \textbf{0\%} valid: 957 of 1{,}000 answers
+failed only because the spec's prompt never said that the input node's \texttt{kind} is \texttt{"placeholder"} (the models
+wrote \texttt{"input"}). We clarified the rule, asked for compact one-line JSON (12\% of answers had run out of tokens
+while pretty-printing), rebuilt the training files and restarted every job. Zero-shot rose to 19.9\%; the remaining
+zero-shot failures are genuine (e.g.\ the runaway loop in Example 6).
+
+\noindent\textbf{5. Thinking mode needed room.} With the spec's 8{,}192-token budget, 97\% of thinking answers were
+still reasoning when cut off. With 30{,}000 tokens most finished, with excellent topology but missing shapes; forcing
+the JSON format \emph{after} the reasoning (``think-then-constrain'') fixed the format. Thinking costs 17--22k tokens per
+graph (about 20$\times$ a normal answer).
+
+\noindent\textbf{6. The night of experiments.} After the planned runs, the weak spot was clear: models fine-tuned on 54
+templates fail on new code. We added the synthetic-data arm, the 27B ceiling, combinations of retry and
+self-consistency, and OOD-2. Every change is recorded with its reason in \texttt{DECISIONS.md}; the full log is
+\texttt{PROJECT\_LOG.md}.
+
+%==========================================================================================================
+\section{Results}\label{sec:results}
+
+\subsection{The main table}
+\begin{table}[H]\centering\small
+\begin{tabular}{lccccc}\toprule
+& \multicolumn{5}{c}{\textbf{fully valid, \%} \quad(exact match \% in brackets)} \\
+Configuration & test (1{,}000) & test\_anon & novel\_topo (564) & OOD-1 (40) & OOD-2 (21) \\\midrule
+2B 3-shot & 1.1 (6.5) & -- & 1.1 (3.2) & 0.0 (0.0) & 0.0 (4.8) \\
+Coder-7B 3-shot & 15.4 (21.7) & -- & 6.9 (19.1) & 10.0 (5.0) & 47.6 (33.3) \\
+9B zero-shot & 19.9 (20.3) & -- & 10.3 (14.0) & 12.5 (5.0) & 38.1 (28.6) \\
+9B 3-shot & 54.9 (57.1) & 47.0 (50.4) & 32.3 (33.9) & 27.5 (30.0) & 47.6 (38.1) \\
+9B 3-shot + retry & -- & -- & -- & 45.0 (40.0) & 71.4 (66.7) \\
+27B zero-shot + retry & -- & -- & 87.9 (90.8) & \textbf{100} (87.5) & 90.5 (85.7) \\
+27B 3-shot & 91.0 (97.9) & -- & 92.4 (99.1) & 80.0 (70.0) & \textbf{95.2} (90.5) \\\midrule
+2B fine-tuned & 93.3 (93.7) & 93.4 & 64.4 (64.5) & 5.0 (2.5) & 28.6 (19.0) \\
+2B FT + synthetic & \textbf{100} (100) & 99.8 & \textbf{100} (100) & 72.5 (70.0) & 71.4 (52.4) \\
+9B fine-tuned & 99.7 (99.7) & 99.6 & \textbf{100} (100) & 47.5 (30.0) & 85.7 (71.4) \\
+9B fine-tuned + retry & 99.7 (99.7) & -- & \textbf{100} (100) & 67.5 (45.0) & 90.5 (76.2) \\
+9B FT + synthetic & \textbf{100} (100) & \textbf{100} & \textbf{100} (100) & 95.0 (97.5) & 76.2 (76.2) \\
+9B FT + synthetic + retry & \textbf{100} (100) & -- & \textbf{100} (100) & 97.5 (97.5) & 90.5 (76.2) \\\bottomrule
+\end{tabular}
+\caption{Headline results (all constrained decoding, greedy). ``--'' = not run. ``Fully valid'' = passes all
+validator levels; ``exact'' = identical nodes and edges (ignores shapes, so it can exceed validity). On the small OOD
+sets one module is 2.5 (OOD-1) or 4.8 (OOD-2) percentage points.}\label{tab:main}
+\end{table}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.95\linewidth]{figs/F1_headline.png}
+\caption{Headline metrics on the official test with 95\% bootstrap confidence intervals (F1).}\label{fig:F1}
+\end{figure}
+
+\subsection{Complexity: which architectures are hard?}
+\begin{figure}[H]\centering
+\includegraphics[width=0.95\linewidth]{figs/F2_by_tier.png}
+\caption{Edge F1 and exact match by tier (official test). For the prompted models, L2 (residual) and L4 (nested) are the
+hard tiers: 9B 3-shot exact match is 93.5\% on L0 but 24.5\% on L2 and 17.0\% on L4. The long skip edge into an
+\texttt{add} is the typical miss. Fine-tuned models are flat at $\approx$100\%.}\label{fig:F2}
+\end{figure}
+
+\subsection{Memorisation versus generalisation}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{figs/F4_seen_vs_unseen.png}
+\caption{From left to right the test sets move further from the training data: test samples with a seen topology,
+test samples with a held-out topology, the novel\_topo set, OOD-1 and OOD-2. Plain fine-tuning (light green, pink) is
+near-perfect until OOD-1, where it collapses; the synthetic-data models (dark green, red) and the 27B (purple) hold up.}\label{fig:F4}
+\end{figure}
+Inside the test set, the fine-tuned 2B scores 99.3\% on seen topologies but 69.5\% on held-out ones, and \textbf{0\% on
+the held-out L4 topology}; the fine-tuned 9B scores 99.0\% on held-out topologies including 100\% on that L4 structure
+(Example 5). Scale decides whether a fine-tuned model memorises templates or learns the rules.
+
+\subsection{Robustness, validity and self-correction}
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\linewidth]{figs/F5_robustness.png}
+\caption{Robustness to renaming, dead code and anonymised class names (F5). The 9B 3-shot model drops from 54.9\% to
+47.0\% valid when class names are replaced by \texttt{Net} (it uses the tier hint in the name); fine-tuned models do not
+care (93.3/93.4\% for 2B, 99.7/99.6\% for 9B).}\label{fig:F5}
+\end{figure}
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\linewidth]{figs/F6_validity.png}
+\caption{Left: validity levels with (solid) and without (hatched) constrained decoding. Constraining the JSON hardly
+matters (9B 3-shot: 54.9\% vs 54.6\%; fine-tuned 9B: identical), because these models already write valid JSON; the
+errors are in the content. Right: verify-and-retry before and after (F6).}\label{fig:F6}
+\end{figure}
+
+\begin{table}[H]\centering\small
+\begin{tabular}{llccc}\toprule
+Model & set & valid before retry & valid after retry & mean rounds \\\midrule
+27B zero-shot & OOD-1 & 70.0 & \textbf{100.0} & 0.33 \\
+27B zero-shot & novel\_topo & 44.1 & 87.9 & 0.79 \\
+9B fine-tuned & OOD-1 & 47.5 & 67.5 & 0.93 \\
+9B FT + synthetic & OOD-2 & 76.2 & 90.5 & 0.38 \\
+9B 3-shot & OOD-1 & 27.5 & 45.0 & 1.28 \\
+2B fine-tuned & OOD-1 & 5.0 & 7.5 & 1.90 \\
+2B FT + synthetic & OOD-1 & 72.5 & 72.5 & 0.55 \\\bottomrule
+\end{tabular}
+\caption{Verify-and-retry uses only the validator, never the answer. It helps the 9B and 27B models a lot and the
+2B models not at all: small models cannot act on the feedback.}\label{tab:retry}
+\end{table}
+
+\subsection{Failure modes, properties, metric check, training}
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\linewidth]{figs/F7_failures.png}
+\caption{Failure labels per 100 test samples (a sample can have several). Prompted models mostly miss edges (ordinary
+and skip edges) and invent extra ones; parse failures are the zero-shot runaway loops.}\label{fig:F7}
+\end{figure}
+\begin{figure}[H]\centering
+\includegraphics[width=0.95\linewidth]{figs/F10_properties.png}
+\caption{How often each topological property of the reference is preserved (official test).}\label{fig:F10}
+\end{figure}
+\begin{figure}[H]\centering
+\begin{minipage}{0.44\linewidth}\centering\includegraphics[width=\linewidth]{figs/F8_aed_vs_ged.png}\end{minipage}\hfill
+\begin{minipage}{0.54\linewidth}\centering\includegraphics[width=\linewidth]{figs/F9_loss.png}\end{minipage}
+\caption{Left (F8): our fast aligned edit distance vs the true graph edit distance (Spearman 0.998; it is never
+below the true value). Right (F9): training and validation loss of the 2B and 9B fine-tunes (log scale); both reach
+losses near zero, as expected on templated data.}\label{fig:F8}
+\end{figure}
+
+%==========================================================================================================
+\section{Twelve worked examples, from code to graph}\label{sec:examples}
+Each example shows the code, a small results table, and drawings: the reference (from \texttt{torch.fx}) and one or
+two model predictions, usually as a \textbf{diff} against the reference. In a diff, black edges are correct,
+\textcolor{red}{red dashed} nodes and edges are in the reference but missing from the prediction,
+\textcolor{orange}{orange} ones are invented by the model, and red text marks a wrong layer type or shape.
+\clearpage
+\input{examples.tex}
+
+%==========================================================================================================
+\section{Findings}\label{sec:findings}
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Fine-tuning solves the dataset's own distribution.} The fine-tuned 9B is 99.7\% valid on the official
+test (54.9\% for the same model with 3 examples), ignores class names (99.6\% anonymised) and is 100\% on topologies it
+never saw (\texttt{novel\_topo}). Even the 2B reaches 93.3\%.
+\item \textbf{Whether fine-tuning memorises depends on scale.} The fine-tuned 2B fails every held-out L4 graph (0/52)
+by reproducing training templates; the 9B gets all of them.
+\item \textbf{Plain fine-tuning breaks on genuinely new code.} On OOD-1 the fine-tuned models fall to 5\% (2B) and
+47.5\% (9B): they have never seen nested submodules, \texttt{ModuleList} naming or pooling (Examples 7, 8).
+\item \textbf{Cheap synthetic data fixes most of it.} Adding $\sim$2{,}800 random, automatically labelled modules lifts
+OOD-1 to 95\% (9B) and 72.5\% (2B), and the 2B reaches 100\% on test and novel\_topo. On OOD-2 (operators outside both
+training sources) the synthetic-data models get the \emph{structure} better than before but still miss \emph{shapes}
+of unseen operators (Example 10).
+\item \textbf{Scale + feedback is the most robust option for unfamiliar code.} The 27B model without any fine-tuning
+reaches 100\% valid on OOD-1 with verify-and-retry and 95.2\% on OOD-2 with 3 examples.
+\item \textbf{Verify-and-retry works for large models only} (+20 points for the fine-tuned 9B on OOD-1, 70\%$\to$100\% for
+the 27B; nothing for 2B models). Valid after retry does not mean correct (Example 9).
+\item \textbf{Smaller findings.} Constrained decoding barely matters for these models. Long skip edges are the
+hardest structure for prompted models. The older code-specialised Qwen2.5-Coder-7B is far behind the general
+Qwen3.5-9B (15.4\% vs 54.9\% at 3-shot) and includes dead code in a third of the dead-code samples. Thinking mode gives
+excellent topology when it finishes but costs $\sim$20$\times$ the tokens.
+\end{enumerate}
+
+%==========================================================================================================
+\section{Caveats and limitations}\label{sec:caveats}
+\begin{itemize}[leftmargin=*]
+\item \textbf{Small OOD sets.} OOD-1 has 40 modules and OOD-2 has 21; one module moves a score by 2.5 or 4.8 points.
+Differences of one or two modules (e.g.\ 27B 3-shot 80\% vs synthetic-data 2B 72.5\% on OOD-1) are not significant.
+\item \textbf{The same author wrote OOD-1 and the synthetic generator}, so they share an operator vocabulary. OOD-1 gains
+of the synthetic-data models partly measure ``familiar operators, new code''. OOD-2 was written afterwards to test
+beyond that vocabulary, but it was also written by us, not by independent people.
+\item \textbf{Dataset conventions are narrow}: batch 1, $16\times16$ inputs, mostly flat modules, 54 topologies in total.
+The models learned these conventions; real-world code (other input sizes, huge models) is out of scope.
+\item \textbf{The validator is approximate for control flow}: it reads straight-line code and does not look inside
+\texttt{if} or \texttt{while} bodies (Example 12 shows a false ``dead code'' message). It is exact on all dataset and OOD
+graphs, which are straight-line.
+\item \textbf{Exact match ignores invalid edges}: an edge pointing to a non-existent node is dropped by the metric but
+rejected by the validator, so a graph can be ``exact'' but not ``valid'' (Example 11). We always report both.
+\item \textbf{Tuple outputs are not supported} by the output format (no tensor shape), so three OOD-2 modules using
+\texttt{torch.chunk}/\texttt{split} were dropped.
+\item \textbf{Single runs}: every configuration was run once with greedy decoding; the confidence intervals reflect
+sample variation, not training-seed variation. All inference ran on one GPU type (L40S).
+\item \textbf{Not run}: the planned P2 ablations ``train on chain-of-thought targets'' and ``edge-list output
+format''. The 27B model was run in FP8 (the bf16 version does not fit on one 48\,GB GPU).
+\end{itemize}
+
+%==========================================================================================================
+\section{Reproducing and exploring}\label{sec:repro}
+\begin{lstlisting}[style=plain]
+source ~/IE643_Project/tgenv.sh train      # or: infer   (activates an env and sets every cache)
+python scripts/prepare_data.py --tokenizer $MODELS/Qwen3.5-9B   # splits, SFT files, token audit, stats
+python scripts/build_ood.py; python scripts/build_ood.py ood2   # label the OOD sets
+pytest -q                                                        # 28 tests
+sbatch -p l40 --qos=l40 jobs/train.sh                            # LoRA 2B + 9B, merge
+sbatch -p l40 --qos=l40 --export=ALL,CONFIGS="ft9b_c" jobs/infer.sh   # any config in configs/experiments.yaml
+bash jobs/cpu_eval.sh                       # metrics, tables, figures, gallery (CPU)
+python app/app.py --mode precomputed        # demo app without a GPU
+\end{lstlisting}
+Results live in \texttt{results/tables} (CSV + Markdown, including \texttt{main.md}), \texttt{results/figures} and
+\texttt{results/figures/gallery} (best/median/worst per tier and OOD examples). The reasons behind every deviation from
+the original build spec are in \texttt{DECISIONS.md}.
+
+\paragraph{The appendices} hold every remaining detail: the complete result tables (every configuration on every
+set, by tier, size, variant, topology and OOD category, validity levels, retry, properties, failure labels, the
+edit-distance check, token and speed statistics; Appendix~\ref{app:results}), the data in detail
+(Appendix~\ref{app:data}), the exact prompts and output schema (Appendix~\ref{app:prompts}), every validator check and
+metric definition (Appendix~\ref{app:validator}), training and inference settings (Appendix~\ref{app:training}),
+software, hardware and the full compute log (Appendix~\ref{app:env}), the decision log, the problems and fixes, the
+timeline (Appendices~\ref{app:decisions}--\ref{app:timeline}), a file-by-file inventory with the tests
+(Appendix~\ref{app:repo}) and the demo app (Appendix~\ref{app:app}).
+
+\appendix
+\section{Glossary}
+\begin{description}[leftmargin=*,style=nextline]
+\item[torch.fx] PyTorch tool that records the operations a module performs; our source of exact answers (``oracle'').
+\item[placeholder / call\_module / call\_function / call\_method / output] the node types of a torch.fx graph: input,
+a layer object (\texttt{self.conv}), a function (\texttt{torch.relu}, \texttt{a+b}), a tensor method (\texttt{x.mean}),
+and the returned value.
+\item[CG-JSON] our compact output format: a node list and edges as index pairs.
+\item[Topology / structure] the graph with names removed. Two models with the same topology differ only in names.
+\item[LoRA] a fine-tuning method that trains small extra matrices instead of all weights.
+\item[Zero-shot / few-shot] prompting with only instructions / with a few solved examples in the prompt.
+\item[Constrained decoding] the generator may only produce tokens that keep the output valid against a JSON schema.
+\item[Verify-and-retry] send the validator's error messages back to the model and ask for a corrected graph.
+\item[Self-consistency] sample several answers and pick the best by the validator's score.
+\item[OOD] out-of-distribution: inputs unlike the training data.
+\item[Isomorphic] two graphs are the same up to renaming the nodes.
+\item[Graph edit distance] the number of node/edge insertions, deletions and substitutions that turn one graph into the
+other.
+\end{description}
+
+\clearpage
+\input{appendix.tex}
+\end{document}

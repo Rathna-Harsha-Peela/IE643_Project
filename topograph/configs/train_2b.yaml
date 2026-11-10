@@ -1,0 +1,10 @@
+tag: qwen35-2b-topograph
+model_dir: ${MODELS}/Qwen3.5-2B
+output_dir: runs/train_2b
+lora_r: 32
+lora_alpha: 64
+lora_dropout: 0.05
+lr: 2.0e-4
+epochs: 2
+batch_size: 8
+grad_accum: 2

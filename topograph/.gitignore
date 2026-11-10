@@ -1,0 +1,12 @@
+data/raw/
+data/processed/*
+!data/processed/splits.json
+!data/processed/dataset_stats.md
+models/
+results/raw/
+logs/
+__pycache__/
+*.pyc
+.pytest_cache/
+tb/
+runs/

@@ -1,0 +1,10 @@
+model_name_or_path: /kaggle/working/models/Qwen3.5-9B
+output_dir: results/base_eval
+eval_sets:
+  - test
+  - test_anon
+  - test_mini
+  - test_struct_unseen
+  - novel_topo
+backend: hf
+max_new_tokens: 2048

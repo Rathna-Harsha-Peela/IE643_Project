@@ -1,0 +1,20 @@
+{
+ "data_dependent_if": {
+  "class_name": "GatedByMean"
+ },
+ "while_loop": {
+  "class_name": "IterativeRefine"
+ },
+ "assert_value": {
+  "class_name": "CheckedNet"
+ },
+ "int_shape": {
+  "class_name": "DynamicPool"
+ },
+ "early_exit": {
+  "class_name": "EarlyExit"
+ },
+ "data_dependent_loop_count": {
+  "class_name": "RepeatByInput"
+ }
+}

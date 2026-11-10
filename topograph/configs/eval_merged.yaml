@@ -1,0 +1,10 @@
+model_name_or_path: /kaggle/working/models/qwen35-9b-topograph-merged
+output_dir: results/merged_eval
+eval_sets:
+  - test
+  - test_anon
+  - test_mini
+  - test_struct_unseen
+  - novel_topo
+backend: hf
+max_new_tokens: 2048

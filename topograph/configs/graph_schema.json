@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "properties": {
+    "nodes": {"type": "array", "minItems": 2, "items": {
+      "type": "object",
+      "properties": {
+        "name":  {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+        "op":    {"type": "string", "enum": ["placeholder","call_module","call_function","call_method","get_attr","output"]},
+        "kind":  {"type": "string"},
+        "shape": {"type": "array", "items": {"type": "integer", "minimum": 1}}
+      },
+      "required": ["name","op","kind","shape"], "additionalProperties": false}},
+    "edges": {"type": "array", "items": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2}}
+  },
+  "required": ["nodes","edges"], "additionalProperties": false
+}
